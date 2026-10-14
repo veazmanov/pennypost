@@ -78,7 +78,7 @@
 
             @if (session('status') === 'draft-saved')
                 @php
-                    $cutoffAt = $nextBatch->copy()->subDays(config('pennypost.cutoff_days_before_batch'));
+                    $cutoffAt = \App\Models\Message::cutoffFor($nextBatch);
                     $totalMinutes = max(0, (int) now()->diffInMinutes($cutoffAt));
                     $daysRemaining = intdiv($totalMinutes, 1440);
                     $hoursRemaining = intdiv($totalMinutes % 1440, 60);

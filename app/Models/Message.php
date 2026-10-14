@@ -77,9 +77,44 @@ protected function casts(): array
     }
 
     /**
+     * Sealed letters this user is allowed to see: every delivered letter
+     * they sent or received, plus their own letters still in the post.
+     * Someone else's letter to them stays hidden until post day.
+     */
+    public function scopeVisibleTo(Builder $query, User|int $user): Builder
+    {
+        $userId = $user instanceof User ? $user->id : $user;
+
+        return $query->sent()
+            ->where(function ($query) use ($userId) {
+                $query->where('sender_id', $userId)->orWhere('recipient_id', $userId);
+            })
+            ->where(function ($query) use ($userId) {
+                $query->whereNotNull('delivered_at')->orWhere('sender_id', $userId);
+            });
+    }
+
+    /**
+     * Letters in either direction between two people.
+     */
+    public function scopeBetween(Builder $query, User|int $a, User|int $b): Builder
+    {
+        $a = $a instanceof User ? $a->id : $a;
+        $b = $b instanceof User ? $b->id : $b;
+
+        return $query->where(function ($query) use ($a, $b) {
+            $query->where(function ($q) use ($a, $b) {
+                $q->where('sender_id', $a)->where('recipient_id', $b);
+            })->orWhere(function ($q) use ($a, $b) {
+                $q->where('sender_id', $b)->where('recipient_id', $a);
+            });
+        });
+    }
+
+    /**
      * Work out which weekly batch (Friday 12:00 UTC) a message sent "now"
-     * will go out in. The cutoff to catch a given Friday's batch is the
-     * preceding Monday at 12:00 UTC.
+     * will go out in. The cutoff to catch a given batch is cutoffFor()
+     * that batch: `cutoff_days_before_batch` days earlier, at 12:00 UTC.
      */
     public static function nextBatchFor(?CarbonInterface $sentAt = null): CarbonImmutable
     {
@@ -89,9 +124,7 @@ protected function casts(): array
         for ($i = 0; $i < 14; $i++) {
             if ($probe->isFriday()) {
                 $friday = $probe->setTime(12, 0);
-                $cutoff = $friday->subDays(config('pennypost.cutoff_days_before_batch'));
-
-                if ($sentAt->lessThanOrEqualTo($cutoff)) {
+                if ($sentAt->lessThanOrEqualTo(self::cutoffFor($friday))) {
                     return $friday;
                 }
             }
@@ -102,6 +135,14 @@ protected function casts(): array
         return $sentAt->next(CarbonImmutable::FRIDAY)->setTime(12, 0);
     }
 
+
+    /**
+     * The last moment a letter can be sealed and still go out in $batch.
+     */
+    public static function cutoffFor(CarbonInterface $batch): CarbonImmutable
+    {
+        return CarbonImmutable::instance($batch)->subDays(config('pennypost.cutoff_days_before_batch'));
+    }
 
     public static function humanDayLabel(CarbonInterface $date): string
     {

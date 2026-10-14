@@ -37,3 +37,11 @@ test('a message sent friday morning misses same-day delivery', function () {
 
     expect($batch->toDateString())->toBe('2026-08-28');
 });
+
+test('the cutoff for a batch is cutoff_days_before_batch days earlier, at the same time', function () {
+    config(['pennypost.cutoff_days_before_batch' => 2]);
+
+    $cutoff = Message::cutoffFor(CarbonImmutable::parse('2026-08-14 12:00:00', 'UTC'));
+
+    expect($cutoff->toDateTimeString())->toBe('2026-08-12 12:00:00');
+});

@@ -42,9 +42,7 @@
                 </p>
                 <p class="pp-lede" style="margin-top: 28px; margin-bottom: 0;">
                     @php
-                        $cutoffDayName = \Carbon\CarbonImmutable::parse('next friday')
-                            ->subDays(config('pennypost.cutoff_days_before_batch'))
-                            ->format('l');
+                        $cutoffDayName = \App\Models\Message::cutoffFor(\App\Models\Message::nextBatchFor())->format('l');
                     @endphp
                     {{ __('Messages are delivered on Fridays. To make it into that Friday\'s batch, send your letter before :day.', ['day' => $cutoffDayName]) }}
                     {{ __('Delivery happens at a fixed moment in GMT — see the clock in your Settings page for exactly when that lands in your own time zone.') }}
@@ -73,9 +71,7 @@
                         <h3 class="pp-step-title">{{ __('Delivered') }}</h3>
                         <p class="pp-step-body">
                             @php
-                                $cutoffDayName = \Carbon\CarbonImmutable::parse('next friday')
-                                    ->subDays(config('pennypost.cutoff_days_before_batch'))
-                                    ->format('l');
+                                $cutoffDayName = \App\Models\Message::cutoffFor(\App\Models\Message::nextBatchFor())->format('l');
                             @endphp
                             {{ __('Messages are delivered on Fridays. To make it into that Friday\'s batch, send your letter before :day.', ['day' => $cutoffDayName]) }}
                         </p>

@@ -24,13 +24,7 @@ class MessageController extends Controller
         $userId = $request->user()->id;
 
         $messages = Message::query()
-            ->sent()
-            ->where(function ($query) use ($userId) {
-                $query->where('sender_id', $userId)->orWhere('recipient_id', $userId);
-            })
-            ->where(function ($query) use ($userId) {
-                $query->whereNotNull('delivered_at')->orWhere('sender_id', $userId);
-            })
+            ->visibleTo($userId)
             ->with(['sender', 'recipient'])
             ->orderByDesc('sent_at')
             ->get(['id', 'sender_id', 'recipient_id', 'sent_at']);
@@ -80,17 +74,8 @@ class MessageController extends Controller
 
 
         $letters = Message::query()
-            ->sent()
-            ->where(function ($query) use ($userId, $person) {
-                $query->where(function ($q) use ($userId, $person) {
-                    $q->where('sender_id', $userId)->where('recipient_id', $person->id);
-                })->orWhere(function ($q) use ($userId, $person) {
-                    $q->where('sender_id', $person->id)->where('recipient_id', $userId);
-                });
-            })
-            ->where(function ($query) use ($userId) {
-                $query->whereNotNull('delivered_at')->orWhere('sender_id', $userId);
-            })
+            ->visibleTo($userId)
+            ->between($userId, $person)
             ->orderByDesc('sent_at')
             ->get();
 

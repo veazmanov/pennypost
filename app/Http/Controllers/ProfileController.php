@@ -19,7 +19,7 @@ class ProfileController extends Controller
     public function edit(Request $request): View
     {
         $nextCatchableBatch = Message::nextBatchFor();
-        $nextPickup = $nextCatchableBatch->subDays(config('pennypost.cutoff_days_before_batch'));
+        $nextPickup = Message::cutoffFor($nextCatchableBatch);
         $nextDelivery = Message::nextDeliveryAt();
 
         return view('profile.edit', [
