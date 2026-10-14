@@ -114,13 +114,19 @@
                         </p>
                     </div>
 
-                    <div class="relative mt-6 mx-auto" style="width: fit-content;">
-                        <div class="inline-flex items-baseline">
+                    <div class="relative mt-6 mx-auto w-fit max-w-full">
+                        <div class="inline-flex items-baseline max-w-full">
                             <label for="recipient_name" class="pp-serif shrink-0 italic"
                                 style="color: var(--ink); font-size: 1.25rem; line-height: 1.75; margin-right: 0.75rem;">{{ __('To') }}</label>
-                            <input id="recipient_name" type="text" autocomplete="off"
-                                class="pp-input-line pp-input-line--flush pp-serif uppercase" style="width: 14rem;"
-                                x-model="query" @input="search()">
+                            {{-- The hidden copy of the name sizes the grid cell, so the input grows with what's typed. --}}
+                            <span class="inline-grid min-w-0">
+                                <span aria-hidden="true"
+                                    class="pp-input-line pp-input-line--flush pp-serif uppercase [grid-area:1/1] invisible whitespace-pre min-w-56 pr-[1ch]"
+                                    x-text="query || ' '"></span>
+                                <input id="recipient_name" type="text" autocomplete="off"
+                                    class="pp-input-line pp-input-line--flush pp-serif uppercase [grid-area:1/1] min-w-0"
+                                    x-model="query" @input="search()">
+                            </span>
                         </div>
                         <input type="hidden" name="recipient_id" x-model="recipientId">
 
