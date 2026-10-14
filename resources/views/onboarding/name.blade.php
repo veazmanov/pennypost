@@ -18,4 +18,11 @@
             </x-primary-button>
         </div>
     </form>
+
+    <form method="POST" action="{{ route('logout') }}" class="text-sm mt-6" style="color: var(--ink-soft);">
+        @csrf
+        {{ __('Signed in as :email.', ['email' => Auth::user()->email]) }}
+        {{ __('Not you?') }}
+        <button type="submit" class="pp-link">{{ __('Log out') }}</button>
+    </form>
 </x-guest-layout>

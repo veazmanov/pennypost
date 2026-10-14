@@ -56,6 +56,21 @@ test('users can logout', function () {
     $response->assertRedirect('/');
 });
 
+test('a user stuck on onboarding can see their email and log out', function () {
+    $user = User::factory()->create(['name' => null, 'email' => 'typo@example.com']);
+
+    $this->actingAs($user)
+        ->get(route('onboarding.name'))
+        ->assertOk()
+        ->assertSee('typo@example.com')
+        ->assertSee(route('logout'));
+
+    $response = $this->post('/logout');
+
+    $this->assertGuest();
+    $response->assertRedirect('/');
+});
+
 test('requesting a login link for a soft-deleted account shows a friendly message instead of crashing', function () {
     $user = User::factory()->create(['email' => 'ghost@example.com']);
     $user->delete(); // soft delete without going through the anonymization flow
