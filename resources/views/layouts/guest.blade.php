@@ -17,15 +17,17 @@
 </head>
 
 <body class="antialiased">
-    <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0">
-        <a href="/" class="flex items-center gap-2 mb-6">
-            <span class="pp-brand-mark">P</span>
-            <span class="pp-serif font-semibold text-lg" style="color: var(--ink);">Penny Post</span>
-        </a>
+    <div class="min-h-screen flex flex-col items-center">
+        <main class="flex-1 w-full flex flex-col sm:justify-center items-center pt-6 sm:pt-0">
+            <a href="/" class="flex items-center gap-2 mb-6">
+                <span class="pp-brand-mark">P</span>
+                <span class="pp-serif font-semibold text-lg" style="color: var(--ink);">Penny Post</span>
+            </a>
 
-        <div class="w-full sm:max-w-md px-6 py-8 pp-letter-card">
-            {{ $slot }}
-        </div>
+            <div class="w-full sm:max-w-md px-6 py-8 pp-letter-card">
+                {{ $slot }}
+            </div>
+        </main>
         <x-site-footer />
     </div>
 </body>
