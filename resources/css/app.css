@@ -152,16 +152,6 @@
     .pp-btn-ghost:hover {
         border-color: var(--ink);
     }
-    .pp-btn-solid {
-        background: var(--letter-paper);
-        color: var(--letter-ink);
-        border-color: var(--letter-paper);
-    }
-
-    .pp-btn-solid:hover {
-        background: var(--letter-line);
-        border-color: var(--letter-line);
-    }
 
     .pp-btn-danger {
         background: transparent;

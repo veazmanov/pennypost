@@ -14,26 +14,26 @@ class Message extends Model
     use HasFactory;
 
 
-protected $fillable = [
-    'sender_id',
-    'recipient_id',
-    'body',
-    'enclosures',
-    'is_draft',
-    'scheduled_for',
-    'sent_at',
-];
-
-protected function casts(): array
-{
-    return [
-        'is_draft' => 'boolean',
-        'scheduled_for' => 'immutable_datetime',
-        'sent_at' => 'immutable_datetime',
-        'delivered_at' => 'immutable_datetime',
-        'enclosures' => 'array',
+    protected $fillable = [
+        'sender_id',
+        'recipient_id',
+        'body',
+        'enclosures',
+        'is_draft',
+        'scheduled_for',
+        'sent_at',
     ];
-}
+
+    protected function casts(): array
+    {
+        return [
+            'is_draft' => 'boolean',
+            'scheduled_for' => 'immutable_datetime',
+            'sent_at' => 'immutable_datetime',
+            'delivered_at' => 'immutable_datetime',
+            'enclosures' => 'array',
+        ];
+    }
 
     public function sender(): BelongsTo
     {
@@ -179,10 +179,10 @@ protected function casts(): array
         return $asOf->next(CarbonImmutable::FRIDAY)->setTime(12, 0);
     }
 
-public function hasEnclosures(): bool
-{
-    return ! empty($this->enclosures);
-}
+    public function hasEnclosures(): bool
+    {
+        return ! empty($this->enclosures);
+    }
 
 
 

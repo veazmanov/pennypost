@@ -13,16 +13,14 @@ class DeliverMessages extends Command
 
     public function handle(): int
     {
-        $due = Message::query()->due()->get();
+        $delivered = Message::query()->due()->update(['delivered_at' => now()]);
 
-        if ($due->isEmpty()) {
+        if ($delivered === 0) {
             $this->info('No messages are due for delivery.');
             return self::SUCCESS;
         }
 
-        Message::query()->due()->update(['delivered_at' => now()]);
-
-        $this->info("Delivered {$due->count()} message(s).");
+        $this->info("Delivered {$delivered} message(s).");
 
         return self::SUCCESS;
     }

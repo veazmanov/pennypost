@@ -17,6 +17,9 @@
 </head>
 
 <body>
+    @php
+        $cutoffDayName = \App\Models\Message::cutoffFor(\App\Models\Message::nextBatchFor())->format('l');
+    @endphp
     <div class="pp-wrap">
         <nav class="pp-nav">
             <a href="{{ url('/') }}" class="pp-brand">
@@ -41,9 +44,6 @@
                     {{ __("Penny Post is a digital letter-writing platform. It exists to revive something we've quietly lost: the pleasure of writing a proper letter, and the particular anticipation of waiting for one to arrive.") }}
                 </p>
                 <p class="pp-lede" style="margin-top: 28px; margin-bottom: 0;">
-                    @php
-                        $cutoffDayName = \App\Models\Message::cutoffFor(\App\Models\Message::nextBatchFor())->format('l');
-                    @endphp
                     {{ __('Messages are delivered on Fridays. To make it into that Friday\'s batch, send your letter before :day.', ['day' => $cutoffDayName]) }}
                     {{ __('Delivery happens at a fixed moment in GMT — see the clock in your Settings page for exactly when that lands in your own time zone.') }}
                 </p>
@@ -70,9 +70,6 @@
                         <div class="pp-step-dot pp-mono">3</div>
                         <h3 class="pp-step-title">{{ __('Delivered') }}</h3>
                         <p class="pp-step-body">
-                            @php
-                                $cutoffDayName = \App\Models\Message::cutoffFor(\App\Models\Message::nextBatchFor())->format('l');
-                            @endphp
                             {{ __('Messages are delivered on Fridays. To make it into that Friday\'s batch, send your letter before :day.', ['day' => $cutoffDayName]) }}
                         </p>
                     </div>
