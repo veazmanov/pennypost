@@ -1,16 +1,14 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between gap-4 flex-wrap">
-            <div class="flex items-center gap-4">
-                <h2 class="pp-serif font-semibold text-xl" style="color: var(--ink);">
-                    {{ $person->name }}
-                </h2>
-                <a href="{{ route('messages.create', ['to_id' => $person->id, 'to_name' => $person->name]) }}"
-                    class="pp-btn pp-btn-solid">
-                    {{ __('Write') }}
-                    <x-icons.pen />
-                </a>
-            </div>
+            <h2 class="pp-serif font-semibold text-xl" style="color: var(--ink);">
+                {{ $person->name }}
+            </h2>
+            <a href="{{ route('messages.create', ['to_id' => $person->id, 'to_name' => $person->name]) }}"
+                class="pp-btn pp-btn-solid">
+                {{ __('Write') }}
+                <x-icons.pen />
+            </a>
         </div>
     </x-slot>
     <div class="py-12">
