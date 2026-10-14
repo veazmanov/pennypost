@@ -47,6 +47,13 @@
                     {{ __('Messages are delivered on Fridays. To make it into that Friday\'s batch, send your letter before :day.', ['day' => $cutoffDayName]) }}
                     {{ __('Delivery happens at a fixed moment in GMT — see the clock in your Settings page for exactly when that lands in your own time zone.') }}
                 </p>
+                <p class="pp-mono text-sm mt-7" style="color: var(--ink-soft);">
+                    {{ trans_choice(':count letter delivered|:count letters delivered', $deliveredCount, ['count' => number_format($deliveredCount)]) }}
+                    <span aria-hidden="true" class="mx-2">|</span>
+                    {{ trans_choice(':count in the post|:count in the post', $inTransitCount, ['count' => number_format($inTransitCount)]) }}
+                    <span aria-hidden="true" class="mx-2">|</span>
+                    {{ trans_choice(':count member|:count members', $memberCount, ['count' => number_format($memberCount)]) }}
+                </p>
             </section>
 
             <section class="pp-section" id="how-it-works">

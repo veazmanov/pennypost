@@ -3,6 +3,8 @@
 use App\Http\Controllers\PublicProfileController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\ProfileController;
+use App\Models\Message;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\UserSearchController;
@@ -16,7 +18,14 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::view('/about', 'about')->name('about');
+Route::get('/about', function () {
+    return view('about', [
+        'deliveredCount' => Message::delivered()->sent()->count(),
+        'inTransitCount' => Message::sent()->undelivered()->count(),
+        // Members who finished onboarding — the same definition the directory uses.
+        'memberCount' => User::whereNotNull('name')->count(),
+    ]);
+})->name('about');
 Route::view('/privacy', 'privacy')->name('privacy');
 Route::get('/u/{username}', [PublicProfileController::class, 'show'])->name('profile.public');
 Route::get('/profile/delete/{user}', [ProfileController::class, 'confirmDestroy'])
