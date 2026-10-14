@@ -118,11 +118,12 @@ class MessageController extends Controller
         return view('messages.drafts', ['drafts' => $drafts]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         return view('messages.create', [
             'letter' => new Message,
             'nextBatch' => Message::nextBatchFor(),
+            'backTo' => $request->filled('to_id') ? User::find($request->integer('to_id')) : null,
         ]);
     }
 
@@ -136,6 +137,7 @@ class MessageController extends Controller
         return view('messages.create', [
             'letter' => $message,
             'nextBatch' => Message::nextBatchFor(),
+            'backTo' => $message->recipient,
         ]);
     }
 

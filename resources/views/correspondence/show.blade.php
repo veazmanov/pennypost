@@ -20,9 +20,8 @@
                 @foreach ($drafts as $draft)
                     <a href="{{ route('messages.edit', $draft) }}" class="pp-mono text-xs shrink-0"
                         style="color: var(--ink-soft); border: 1px solid var(--line); border-radius: 999px;
-                               padding: 4px 10px; text-decoration: none; white-space: nowrap;"
-                        title="{{ __('Finish & seal') }}">
-                        {{ __('Draft') }} <span class="italic">· {{ __('not sent') }}</span>
+                               padding: 4px 10px; text-decoration: none; white-space: nowrap;">
+                        {{ __('Edit draft') }} <span class="italic">· {{ __('not sent') }}</span>
                     </a>
                 @endforeach
                 @foreach ($letters as $letter)
@@ -31,7 +30,7 @@
                                padding: 4px 10px; text-decoration: none; white-space: nowrap;">
                         {{ $letter->sent_at->format('j M') }}
                         @unless ($letter->isDelivered())
-                            <span class="italic">· {{ __('in the post, arriving :date', ['date' => $letter->scheduled_for->format('j M')]) }}</span>
+                            <span class="italic">· {{ __('in the post') }}</span>
                         @endunless
                     </a>
                 @endforeach
@@ -48,15 +47,14 @@
                         </p>
                         <ul class="space-y-2">
                             @foreach ($drafts as $draft)
-                                <li>
-                                    <a href="{{ route('messages.edit', $draft) }}" class="pp-mono text-xs block"
-                                        style="color: var(--ink-soft); text-decoration: none; line-height: 1.5;"
-                                        onmouseover="this.style.color='var(--ink)'"
-                                        onmouseout="this.style.color='var(--ink-soft)'"
-                                        title="{{ __('Finish & seal') }}">
-                                        {{ __('Draft') }}
-                                        <span class="italic block">{{ __('not sent') }}</span>
+                                <li class="pb-2">
+                                    <a href="{{ route('messages.edit', $draft) }}" class="pp-btn pp-btn-ghost">
+                                        {{ __('Edit draft') }}
+                                        <x-icons.pen />
                                     </a>
+                                    <span class="pp-mono text-xs italic block mt-1" style="color: var(--ink-soft);">
+                                        {{ __('not sent') }}
+                                    </span>
                                 </li>
                             @endforeach
                             @foreach ($letters as $letter)
@@ -67,7 +65,7 @@
                                         onmouseout="this.style.color='var(--ink-soft)'">
                                         {{ $letter->sent_at->format('jS F') }}
                                         @unless ($letter->isDelivered())
-                                            <span class="italic block">{{ __('in the post, arriving :date', ['date' => $letter->scheduled_for->format('l jS F')]) }}</span>
+                                            <span class="italic block">{{ __('in the post') }}</span>
                                         @endunless
                                     </a>
                                 </li>
@@ -88,22 +86,25 @@
 
                     <div class="pp-letter-plain">
                         @foreach ($drafts as $draft)
-                            <div id="draft-{{ $draft->id }}" class="pp-letter-entry p-8 sm:p-12"
-                                style="scroll-margin-top: 24px;">
+                            <a href="{{ route('messages.edit', $draft) }}" id="draft-{{ $draft->id }}"
+                                class="pp-letter-entry p-8 sm:p-12 block"
+                                style="scroll-margin-top: 24px; color: var(--ink-soft); text-decoration: none; cursor: text;"
+                                onmouseover="this.style.color='var(--ink)'"
+                                onmouseout="this.style.color='var(--ink-soft)'">
                                 <p class="pp-serif text-center"
-                                    style="color: var(--ink-soft); font-size: 1.25rem; line-height: 1.75;">
+                                    style="font-size: 1.25rem; line-height: 1.75;">
                                     <span class="italic">{{ __('To') }}</span>
                                     <span class="uppercase" style="margin-left: 0.75rem;">{{ $person->name }}</span>
                                 </p>
 
                                 <p class="mt-8 whitespace-pre-wrap pp-serif"
-                                    style="color: var(--ink-soft); font-size: 1.25rem; line-height: 1.75;">{{ $draft->body }}</p>
+                                    style="font-size: 1.25rem; line-height: 1.75;">{{ $draft->body }}</p>
 
                                 <p class="mt-8 text-right pp-serif"
-                                    style="color: var(--ink-soft); font-size: 1.25rem; line-height: 1.75;">
+                                    style="font-size: 1.25rem; line-height: 1.75;">
                                     [{{ auth()->user()->name }}]
                                 </p>
-                            </div>
+                            </a>
                         @endforeach
 
                         @forelse ($letters as $letter)

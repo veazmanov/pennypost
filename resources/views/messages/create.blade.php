@@ -1,9 +1,19 @@
 <x-app-layout>
     <x-slot name="header">
         <div style="display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 16px;">
-            <h2 class="pp-serif font-semibold text-xl" style="color: var(--ink);">
-                {{ $letter->exists ? __('Edit your letter') : __('Write a letter') }}
-            </h2>
+            <div>
+                @if ($backTo)
+                    <a href="{{ route('correspondence.show', $backTo) }}" class="pp-mono text-xs block mb-1"
+                        style="color: var(--ink-soft); text-decoration: none;"
+                        onmouseover="this.style.color='var(--ink)'"
+                        onmouseout="this.style.color='var(--ink-soft)'">
+                        ← {{ __('Back to') }} <span class="uppercase">{{ $backTo->name }}</span>
+                    </a>
+                @endif
+                <h2 class="pp-serif font-semibold text-xl" style="color: var(--ink);">
+                    {{ $letter->exists ? __('Edit your letter') : __('Write a letter') }}
+                </h2>
+            </div>
 
              <div class="flex items-center gap-3" x-data="{ submitting: false }"
                 x-on:letter-submitting.window="submitting = true">

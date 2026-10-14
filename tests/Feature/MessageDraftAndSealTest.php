@@ -174,7 +174,7 @@ test('the sender sees their sealed letter and their draft in the thread, the rec
     $this->actingAs($user)->get(route('correspondence.show', $recipient))
         ->assertOk()
         ->assertDontSee('Sealed')
-        ->assertSee('in the post, arriving')
+        ->assertSee('in the post')
         ->assertSee('A real sealed letter.')
         ->assertSee('not sent')
         ->assertSee('Still just a draft.')
@@ -260,4 +260,14 @@ it('full draft, edit, and seal lifecycle works end to end — and sending is fin
         ->assertOk()
         ->assertSee('Revised draft, much better now.')
         ->assertDontSee('Sealed');
+});
+
+test('editing a draft links back to the correspondence with its recipient', function () {
+    $user = User::factory()->create();
+    $recipient = User::factory()->create();
+    $draft = Message::factory()->for($user, 'sender')->for($recipient, 'recipient')->draft()->create();
+
+    $this->actingAs($user)->get(route('messages.edit', $draft))
+        ->assertOk()
+        ->assertSee(route('correspondence.show', $recipient));
 });
