@@ -1,5 +1,7 @@
 <?php
 
+use Carbon\CarbonInterface;
+
 return [
 
     /*
@@ -18,13 +20,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Batch Cutoff
+    | Delivery Schedule
     |--------------------------------------------------------------------------
     |
+    | Letters are delivered on these days (Carbon day-of-week numbers) at
+    | `delivery_time`, UTC. Each delivery day is also the cutoff for the
+    | next delivery: a letter sealed before midnight at the start of one
+    | delivery day arrives on the following one. With Monday and Thursday,
+    | seal before Monday (by Sunday night) and it arrives Thursday; seal
+    | before Thursday and it arrives Monday. See Message::nextBatchFor().
     |
     */
 
-   'cutoff_days_before_batch' => env('PENNYPOST_CUTOFF_DAYS', 2),
+    'delivery_days' => [CarbonInterface::MONDAY, CarbonInterface::THURSDAY],
+
+    'delivery_time' => '12:00',
 
     /*
     |--------------------------------------------------------------------------

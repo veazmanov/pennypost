@@ -10,8 +10,11 @@ Artisan::command('inspire', function () {
 use Illuminate\Support\Facades\Schedule;
 
 
+// Hourly rather than only on delivery days: the command just delivers
+// whatever is due, so a missed run (server down at 12:00) catches up an
+// hour later instead of waiting for the next delivery day.
 Schedule::command('messages:deliver')
-    ->weeklyOn(5, '12:00') // Friday
+    ->hourly()
     ->timezone('UTC');
 
 Schedule::command('backup:database')

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use LogicException;
 
 class Message extends Model
 {
@@ -112,36 +113,99 @@ class Message extends Model
     }
 
     /**
-     * Work out which weekly batch (Friday 12:00 UTC) a message sent "now"
-     * will go out in. The cutoff to catch a given batch is cutoffFor()
-     * that batch: `cutoff_days_before_batch` days earlier, at 12:00 UTC.
+     * Which delivery a letter sealed at $sentAt goes out in: the first
+     * delivery whose cutoff it beats. Each delivery day is the cutoff for
+     * the next delivery, so with Monday and Thursday a letter sealed before
+     * Monday (by Sunday night) arrives Thursday, and one sealed before
+     * Thursday arrives Monday.
      */
     public static function nextBatchFor(?CarbonInterface $sentAt = null): CarbonImmutable
     {
         $sentAt = CarbonImmutable::instance($sentAt ?? now())->setTimezone('UTC');
         $probe = $sentAt->startOfDay();
 
-        for ($i = 0; $i < 14; $i++) {
-            if ($probe->isFriday()) {
-                $friday = $probe->setTime(12, 0);
-                if ($sentAt->lessThanOrEqualTo(self::cutoffFor($friday))) {
-                    return $friday;
-                }
+        for ($i = 0; $i < 21; $i++) {
+            $slot = self::deliveryOn($probe);
+
+            if ($slot && $sentAt->lessThan(self::cutoffFor($slot))) {
+                return $slot;
             }
 
             $probe = $probe->addDay();
         }
 
-        return $sentAt->next(CarbonImmutable::FRIDAY)->setTime(12, 0);
+        throw new LogicException('No delivery days are configured.');
     }
 
-
     /**
-     * The last moment a letter can be sealed and still go out in $batch.
+     * The moment a letter must be sealed before to go out in $batch:
+     * midnight UTC at the start of the delivery day before it.
      */
     public static function cutoffFor(CarbonInterface $batch): CarbonImmutable
     {
-        return CarbonImmutable::instance($batch)->subDays(config('pennypost.cutoff_days_before_batch'));
+        $probe = CarbonImmutable::instance($batch)->setTimezone('UTC')->startOfDay();
+
+        for ($i = 0; $i < 7; $i++) {
+            $probe = $probe->subDay();
+
+            if (self::deliveryOn($probe)) {
+                return $probe;
+            }
+        }
+
+        throw new LogicException('No delivery days are configured.');
+    }
+
+    /**
+     * The delivery moment on $date, or null if $date isn't a delivery day.
+     */
+    protected static function deliveryOn(CarbonImmutable $date): ?CarbonImmutable
+    {
+        if (! in_array($date->dayOfWeek, config('pennypost.delivery_days'), true)) {
+            return null;
+        }
+
+        [$hour, $minute] = array_map('intval', explode(':', config('pennypost.delivery_time')));
+
+        return $date->setTime($hour, $minute);
+    }
+
+    /**
+     * The schedule in words, built from config — e.g. "Letters are
+     * delivered on Mondays and Thursdays. Seal yours before Monday and it
+     * arrives on Thursday; seal it before Thursday and it arrives on Monday."
+     */
+    public static function scheduleDescription(): string
+    {
+        $days = collect(config('pennypost.delivery_days'))->sort()->values();
+        $name = fn (int $day) => CarbonImmutable::now()->next($day)->format('l');
+
+        $routes = $days->map(fn (int $day, int $i) => [
+            'before' => $name($day),
+            'arrives' => $name($days[($i + 1) % $days->count()]),
+        ]);
+
+        $first = $routes->shift();
+
+        return implode(' ', [
+            __('Letters are delivered on :days.', ['days' => self::deliveryDayNames()]),
+            collect([__('Seal yours before :before and it arrives on :arrives', $first)])
+                ->concat($routes->map(fn ($route) => __('seal it before :before and it arrives on :arrives', $route)))
+                ->implode('; ').'.',
+        ]);
+    }
+
+    /**
+     * "Mondays and Thursdays", "Mondays, Wednesdays and Fridays", ...
+     */
+    public static function deliveryDayNames(): string
+    {
+        $names = collect(config('pennypost.delivery_days'))->sort()
+            ->map(fn (int $day) => CarbonImmutable::now()->next($day)->format('l').'s');
+
+        return $names->count() > 1
+            ? $names->slice(0, -1)->implode(', ').' '.__('and').' '.$names->last()
+            : $names->first();
     }
 
     public static function humanDayLabel(CarbonInterface $date): string
@@ -158,25 +222,27 @@ class Message extends Model
 
     /**
      * The next delivery event, full stop — regardless of whether a new
-     * letter could still catch it. Distinct from nextBatchFor(): if it's
-     * currently Friday before noon, that means today's batch (built from
-     * letters sealed before this week's cutoff) hasn't gone out yet, so
-     * "next delivery" is today, not next week.
+     * letter could still catch it. Distinct from nextBatchFor(): on a
+     * delivery day before the delivery time, today's delivery (built from
+     * letters sealed before the last cutoff) hasn't gone out yet, so
+     * "next delivery" is today.
      */
     public static function nextDeliveryAt(?CarbonInterface $asOf = null): CarbonImmutable
     {
         $asOf = CarbonImmutable::instance($asOf ?? now())->setTimezone('UTC');
-        $today = $asOf->startOfDay();
+        $probe = $asOf->startOfDay();
 
-        if ($today->isFriday()) {
-            $todayNoon = $today->setTime(12, 0);
+        for ($i = 0; $i < 8; $i++) {
+            $slot = self::deliveryOn($probe);
 
-            if ($asOf->lessThanOrEqualTo($todayNoon)) {
-                return $todayNoon;
+            if ($slot && $asOf->lessThanOrEqualTo($slot)) {
+                return $slot;
             }
+
+            $probe = $probe->addDay();
         }
 
-        return $asOf->next(CarbonImmutable::FRIDAY)->setTime(12, 0);
+        throw new LogicException('No delivery days are configured.');
     }
 
     public function hasEnclosures(): bool

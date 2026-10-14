@@ -18,7 +18,7 @@
 
 <body>
     @php
-        $cutoffDayName = \App\Models\Message::cutoffFor(\App\Models\Message::nextBatchFor())->format('l');
+        $schedule = \App\Models\Message::scheduleDescription();
     @endphp
     <div class="pp-wrap">
         <nav class="pp-nav">
@@ -44,7 +44,7 @@
                     {{ __("Penny Post is a digital letter-writing platform. It exists to revive something we've quietly lost: the pleasure of writing a proper letter, and the particular anticipation of waiting for one to arrive.") }}
                 </p>
                 <p class="pp-lede" style="margin-top: 28px; margin-bottom: 0;">
-                    {{ __('Messages are delivered on Fridays. To make it into that Friday\'s batch, send your letter before :day.', ['day' => $cutoffDayName]) }}
+                    {{ $schedule }}
                     {{ __('Delivery happens at a fixed moment in GMT — see the clock in your Settings page for exactly when that lands in your own time zone.') }}
                 </p>
                 <p class="pp-mono text-sm mt-7" style="color: var(--ink-soft);">
@@ -77,7 +77,7 @@
                         <div class="pp-step-dot pp-mono">3</div>
                         <h3 class="pp-step-title">{{ __('Delivered') }}</h3>
                         <p class="pp-step-body">
-                            {{ __('Messages are delivered on Fridays. To make it into that Friday\'s batch, send your letter before :day.', ['day' => $cutoffDayName]) }}
+                            {{ $schedule }}
                         </p>
                     </div>
                 </div>
@@ -122,7 +122,7 @@
                     <div>
                         <h3 class="pp-stamp-title">{{ __('What time do I get my mail?') }}</h3>
                         <p class="pp-stamp-body">
-                            {{ __('Messages are delivered on Fridays, at a fixed moment in GMT. Because GMT doesn\'t observe British Summer Time, that moment lands at a different local London time depending on the season. We\'ve put a live GMT clock and countdown on the Settings page so you can see exactly when your letters will land, wherever you are.') }}
+                            {{ __('Messages are delivered on :days, at a fixed moment in GMT. Because GMT doesn\'t observe British Summer Time, that moment lands at a different local London time depending on the season. We\'ve put a live GMT clock and countdown on the Settings page so you can see exactly when your letters will land, wherever you are.', ['days' => \App\Models\Message::deliveryDayNames()]) }}
                         </p>
                     </div>
                 </div>
