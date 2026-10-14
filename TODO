@@ -1,6 +1,5 @@
 Defo
 
-- [ ] remove notice for Irina and Albena (on 20/09)
 - [ ] add notification when someone has a penny post / read or unread messages
 - [ ] create simple deploy script that runs ON the server (instead of retyping those commands)
 - [ ] allow users to download entire correspondence in PDF format

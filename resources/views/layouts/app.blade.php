@@ -24,16 +24,6 @@
     <div class="min-h-screen">
         @include('layouts.navigation')
 
-
-       @auth
-            @php($notice = \Illuminate\Support\Facades\Cache::get('notice:user:'.auth()->id()))
-            @if ($notice)
-                <div class="pp-wrap" style="padding-top: 20px;">
-                    <div class="pp-banner">{{ $notice }}</div>
-                </div>
-            @endif
-        @endauth
-
         <!-- Page Heading -->
         @isset($header)
             <header class="pp-page-header" style="background: var(--paper-card); border-bottom: 1px solid var(--line);">
