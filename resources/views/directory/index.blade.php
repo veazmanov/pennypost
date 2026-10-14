@@ -22,7 +22,7 @@
                     class="pp-paper-card p-4 sm:p-6 flex items-center justify-between gap-4 flex-wrap hover:opacity-90 transition-opacity"
                     style="text-decoration: none;">
                     <div>
-                        <p class="pp-serif font-medium" style="color: var(--ink);">{{ $person->name }}</p>
+                        <p class="pp-serif font-medium uppercase" style="color: var(--ink);">{{ $person->name }}</p>
                         <p class="pp-mono text-xs mt-1" style="color: var(--ink-soft);">
                             {{ __('Joined') }} {{ $person->created_at->format('M Y') }}
                         </p>

@@ -65,8 +65,8 @@ class MessageController extends Controller
     /**
      * The thread with one person, newest letter first: every delivered
      * letter between you two, plus any of your own sealed-but-undelivered
-     * letters to them. Their undelivered letters to you are excluded —
-     * those stay hidden until post day.
+     * letters to them, and your unsent drafts to them. Their undelivered
+     * letters to you are excluded — those stay hidden until post day.
      *
      * Renders the whole thread on one page (no pagination yet) — the
      * query itself is shaped so a character-budget cursor can be added
@@ -97,7 +97,12 @@ class MessageController extends Controller
         return view('correspondence.show', [
             'person' => $person,
             'letters' => $letters,
-            'deliveredLetters' => $letters->filter->isDelivered()->values(),
+            'drafts' => $request->user()
+                ->sentMessages()
+                ->drafts()
+                ->where('recipient_id', $person->id)
+                ->latest('updated_at')
+                ->get(),
         ]);
     }
 

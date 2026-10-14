@@ -17,13 +17,24 @@
         <div class="mx-auto" style="max-width: 74rem; padding-inline: clamp(1.5rem, 6vw, 4rem);">
 
 
-        @if ($deliveredLetters->isNotEmpty())
+        @if ($letters->isNotEmpty() || $drafts->isNotEmpty())
             <div class="md:hidden mb-6 flex gap-2 overflow-x-auto pb-2" style="scrollbar-width: none;">
-                @foreach ($deliveredLetters as $letter)
+                @foreach ($drafts as $draft)
+                    <a href="{{ route('messages.edit', $draft) }}" class="pp-mono text-xs shrink-0"
+                        style="color: var(--ink-soft); border: 1px solid var(--line); border-radius: 999px;
+                               padding: 4px 10px; text-decoration: none; white-space: nowrap;"
+                        title="{{ __('Finish & seal') }}">
+                        {{ __('Draft') }} <span class="italic">· {{ __('not sent') }}</span>
+                    </a>
+                @endforeach
+                @foreach ($letters as $letter)
                     <a href="#letter-{{ $letter->id }}" class="pp-mono text-xs shrink-0"
                         style="color: var(--ink-soft); border: 1px solid var(--line); border-radius: 999px;
                                padding: 4px 10px; text-decoration: none; white-space: nowrap;">
                         {{ $letter->sent_at->format('j M') }}
+                        @unless ($letter->isDelivered())
+                            <span class="italic">· {{ __('in the post, arriving :date', ['date' => $letter->scheduled_for->format('j M')]) }}</span>
+                        @endunless
                     </a>
                 @endforeach
             </div>
@@ -31,20 +42,35 @@
 
 
             <div class="flex items-start gap-10">
-                                @if ($deliveredLetters->isNotEmpty())
+                                @if ($letters->isNotEmpty() || $drafts->isNotEmpty())
                     <nav class="hidden md:block shrink-0"
                         style="width: 150px; position: sticky; top: 24px; max-height: calc(100vh - 48px); overflow-y: auto;">
                         <p class="pp-mono text-xs mb-3" style="color: var(--ink-soft); letter-spacing: 0.08em;">
                             {{ __('JUMP TO') }}
                         </p>
                         <ul class="space-y-2">
-                            @foreach ($deliveredLetters as $letter)
+                            @foreach ($drafts as $draft)
+                                <li>
+                                    <a href="{{ route('messages.edit', $draft) }}" class="pp-mono text-xs block"
+                                        style="color: var(--ink-soft); text-decoration: none; line-height: 1.5;"
+                                        onmouseover="this.style.color='var(--ink)'"
+                                        onmouseout="this.style.color='var(--ink-soft)'"
+                                        title="{{ __('Finish & seal') }}">
+                                        {{ __('Draft') }}
+                                        <span class="italic block">{{ __('not sent') }}</span>
+                                    </a>
+                                </li>
+                            @endforeach
+                            @foreach ($letters as $letter)
                                 <li>
                                     <a href="#letter-{{ $letter->id }}" class="pp-mono text-xs block"
                                         style="color: var(--ink-soft); text-decoration: none; line-height: 1.5;"
                                         onmouseover="this.style.color='var(--ink)'"
                                         onmouseout="this.style.color='var(--ink-soft)'">
                                         {{ $letter->sent_at->format('jS F') }}
+                                        @unless ($letter->isDelivered())
+                                            <span class="italic block">{{ __('in the post, arriving :date', ['date' => $letter->scheduled_for->format('l jS F')]) }}</span>
+                                        @endunless
                                     </a>
                                 </li>
                             @endforeach
@@ -63,8 +89,26 @@
                     @endif
 
                     <div class="pp-letter-plain">
-                                                @forelse ($letters as $letter)
-                            @if ($letter->isDelivered())
+                        @foreach ($drafts as $draft)
+                            <div id="draft-{{ $draft->id }}" class="pp-letter-entry p-8 sm:p-12"
+                                style="scroll-margin-top: 24px;">
+                                <p class="pp-serif text-center"
+                                    style="color: var(--ink-soft); font-size: 1.25rem; line-height: 1.75;">
+                                    <span class="italic">{{ __('To') }}</span>
+                                    <span class="uppercase" style="margin-left: 0.75rem;">{{ $person->name }}</span>
+                                </p>
+
+                                <p class="mt-8 whitespace-pre-wrap pp-serif"
+                                    style="color: var(--ink-soft); font-size: 1.25rem; line-height: 1.75;">{{ $draft->body }}</p>
+
+                                <p class="mt-8 text-right pp-serif"
+                                    style="color: var(--ink-soft); font-size: 1.25rem; line-height: 1.75;">
+                                    [{{ auth()->user()->name }}]
+                                </p>
+                            </div>
+                        @endforeach
+
+                        @forelse ($letters as $letter)
                             <div id="letter-{{ $letter->id }}" class="pp-letter-entry p-8 sm:p-12"
                                 style="scroll-margin-top: 24px;">
 
@@ -111,17 +155,12 @@
                                     </div>
                                 @endif
                             </div>
-                            @else
-                            <div class="pp-letter-entry p-8 sm:p-12 text-center" style="scroll-margin-top: 24px;">
-                                <p class="pp-serif italic" style="color: var(--ink-soft); font-size: 1.1rem;">
-                                    {{ __('Sealed — arriving :date', ['date' => $letter->scheduled_for->format('j F Y')]) }}
-                                </p>
-                            </div>
-                            @endif
                         @empty
+                            @if ($drafts->isEmpty())
                             <div class="p-8 sm:p-12 text-sm" style="color: var(--ink-soft);">
                                 {{ __('Nothing here yet.') }}
                             </div>
+                            @endif
                         @endforelse
                     </div>
                 </div>

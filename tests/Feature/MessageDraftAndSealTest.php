@@ -164,19 +164,26 @@ test('the drafts index only shows the current users own drafts', function () {
     expect($response->viewData('drafts')->pluck('id')->all())->toBe([$mine->id]);
 });
 
-test('a sealed letter shows up in its correspondence thread, but a draft to the same person does not', function () {
+test('the sender sees their sealed letter and their draft in the thread, the recipient sees neither', function () {
     $user = User::factory()->create();
     $recipient = User::factory()->create();
 
     Message::factory()->for($user, 'sender')->for($recipient, 'recipient')->create(['body' => 'A real sealed letter.']);
-    Message::factory()->for($user, 'sender')->for($recipient, 'recipient')->draft()->create(['body' => 'Still just a draft.']);
+    $draft = Message::factory()->for($user, 'sender')->for($recipient, 'recipient')->draft()->create(['body' => 'Still just a draft.']);
 
-    $response = $this->actingAs($user)->get(route('correspondence.show', $recipient));
+    $this->actingAs($user)->get(route('correspondence.show', $recipient))
+        ->assertOk()
+        ->assertDontSee('Sealed')
+        ->assertSee('in the post, arriving')
+        ->assertSee('A real sealed letter.')
+        ->assertSee('not sent')
+        ->assertSee('Still just a draft.')
+        ->assertSee(route('messages.edit', $draft));
 
-    $response->assertOk();
-    $response->assertSee('Sealed');
-    $response->assertDontSee('A real sealed letter.');
-    $response->assertDontSee('Still just a draft.');
+    $this->actingAs($recipient)->get(route('correspondence.show', $user))
+        ->assertOk()
+        ->assertDontSee('A real sealed letter.')
+        ->assertDontSee('Still just a draft.');
 });
 
 
@@ -251,6 +258,6 @@ it('full draft, edit, and seal lifecycle works end to end — and sending is fin
     // thread (sender-visibility rule), even before delivery.
      $this->actingAs($sender)->get(route('correspondence.show', $recipient))
         ->assertOk()
-        ->assertDontSee('Revised draft, much better now.')
-        ->assertSee('Sealed');
+        ->assertSee('Revised draft, much better now.')
+        ->assertDontSee('Sealed');
 });
