@@ -34,7 +34,7 @@
                     @foreach ($correspondences as $thread)
                         <a href="{{ route('correspondence.show', $thread->person) }}"
                             class="pp-paper-card p-4 sm:p-6 flex items-center justify-between gap-4 hover:opacity-90 transition-opacity">
-                            <p class="pp-serif font-medium" style="color: var(--ink);">
+                            <p class="pp-serif font-medium uppercase" style="color: var(--ink);">
                                 {{ $thread->person->name }}
                             </p>
                             <span class="pp-mono text-xs" style="color: var(--ink-soft);">
