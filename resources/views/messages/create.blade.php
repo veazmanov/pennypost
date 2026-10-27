@@ -46,31 +46,58 @@
                 submitting: false,
                 recipientProblem: '',
                 bodyProblem: '',
+                storageKeyPrefix: @js('pp-letter:'.auth()->id().':'),
                 storageKey: @js('pp-letter:'.auth()->id().':'.($letter->id ?? 'new')),
+                serverUpdatedAt: @js($letter->updated_at?->getTimestampMs()),
                 serverCopy: null,
                 restoredLocally: false,
-                dirty: false,
-                saveTimer: null,
+                localTimer: null,
+                draftId: @js($letter->id),
+                formAction: @js($letter->exists ? route('messages.update', $letter) : route('messages.store')),
+                autosaveUrl: @js($letter->exists ? route('messages.autosave.update', $letter) : route('messages.autosave.store')),
+                lastSavedJson: null,
+                lastChangeAt: 0,
+                lastAutosaveAt: Date.now(),
+                autosaving: false,
+                pendingSubmit: false,
+                saveState: '',
+                savedAt: null,
                 init() {
                     this.$watch('fullscreen', (value) => {
                         document.body.classList.toggle('pp-fullscreen-editor', value);
                     });
 
                     this.serverCopy = this.snapshot();
+                    // Old input (e.g. after a 419) may never have reached the database.
+                    if (this.draftId && !@js(session()->hasOldInput())) this.lastSavedJson = JSON.stringify(this.payload());
                     this.restoreLocal();
 
                     ['body', 'query', 'recipientId', 'enclosureUrls'].forEach((field) => {
                         this.$watch(field, () => {
-                            this.dirty = true;
-                            clearTimeout(this.saveTimer);
-                            this.saveTimer = setTimeout(() => this.saveLocal(), 500);
+                            this.lastChangeAt = Date.now();
+                            clearTimeout(this.localTimer);
+                            this.localTimer = setTimeout(() => this.saveLocal(), 500);
                         });
                     });
                     this.$watch('recipientId', (id) => { if (id) this.recipientProblem = ''; });
                     this.$watch('body', (body) => { if (body.trim()) this.bodyProblem = ''; });
 
+                    // Save to the server once typing pauses for 2s, and at least every 20s
+                    // while it doesn't. After a failure, back off for 15s.
+                    setInterval(() => {
+                        if (!this.hasUnsavedChanges()) return;
+                        const sinceSave = Date.now() - this.lastAutosaveAt;
+                        if (this.saveState === 'failed' && sinceSave < 15000) return;
+                        if (Date.now() - this.lastChangeAt >= 2000 || sinceSave >= 20000) this.autosave();
+                    }, 2000);
+
+                    // Phones kill background tabs without warning, so save on the way out.
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'hidden') this.autosave(true);
+                    });
+
                     window.addEventListener('beforeunload', (event) => {
-                        if (this.dirty && !this.submitting) {
+                        if (this.hasUnsavedChanges() && !this.submitting) {
                             event.preventDefault();
                             event.returnValue = '';
                         }
@@ -87,6 +114,97 @@
                         enclosureUrls: [...this.enclosureUrls],
                     };
                 },
+                payload() {
+                    return {
+                        body: this.body,
+                        recipient_id: this.recipientId || null,
+                        recipient_name: this.query,
+                        enclosures: [...this.enclosureUrls],
+                    };
+                },
+                hasUnsavedChanges() {
+                    // A new letter with nothing written isn't worth keeping.
+                    if (!this.draftId && !this.body.trim()) return false;
+                    return JSON.stringify(this.payload()) !== this.lastSavedJson;
+                },
+                autosave(leavingPage = false) {
+                    if (this.autosaving || this.submitting || !this.hasUnsavedChanges()) return;
+
+                    const json = JSON.stringify(this.payload());
+                    this.autosaving = true;
+                    this.saveState = 'saving';
+
+                    fetch(this.autosaveUrl, {
+                        method: this.draftId ? 'PUT' : 'POST',
+                        credentials: 'same-origin',
+                        // keepalive lets the request outlive the page, but caps the body at 64KB.
+                        keepalive: leavingPage && json.length < 60000,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '',
+                        },
+                        body: json,
+                    })
+                        .then(r => {
+                            if (r.status === 419) this.refreshCsrfToken();
+                            if (!r.ok) throw new Error(r.status);
+                            return r.json();
+                        })
+                        .then(data => {
+                            if (!data.saved) { this.saveState = ''; return; }
+                            this.lastSavedJson = json;
+                            if (!this.draftId) this.adoptDraft(data);
+                            this.savedAt = new Date(data.saved_at);
+                            this.saveState = 'saved';
+                            // The server has everything this browser has, so the local copy can go.
+                            if (!this.hasUnsavedChanges()) {
+                                clearTimeout(this.localTimer);
+                                try { localStorage.removeItem(this.storageKey); } catch (e) {}
+                            }
+                        })
+                        .catch(() => { this.saveState = 'failed'; })
+                        .finally(() => {
+                            this.autosaving = false;
+                            this.lastAutosaveAt = Date.now();
+                            if (this.pendingSubmit) {
+                                this.pendingSubmit = false;
+                                this.$nextTick(() => this.$refs.form.requestSubmit());
+                            }
+                        });
+                },
+                // The first background save of a new letter creates a draft; from
+                // then on, everything (including Save draft and Seal & send) updates it.
+                adoptDraft(data) {
+                    this.draftId = data.id;
+                    this.formAction = data.update_url;
+                    this.autosaveUrl = data.autosave_url;
+                    try { localStorage.removeItem(this.storageKey); } catch (e) {}
+                    this.storageKey = this.storageKeyPrefix + data.id;
+                    this.saveLocal();
+                    history.replaceState(history.state, '', data.edit_url);
+                },
+                onSubmit(event) {
+                    // Let an in-flight autosave finish first, or a new letter could
+                    // be created twice: once by the autosave, once by this submit.
+                    if (this.autosaving) {
+                        event.preventDefault();
+                        this.pendingSubmit = true;
+                        return;
+                    }
+                    this.submitting = true;
+                    this.$dispatch('letter-submitting');
+                },
+                saveStatus() {
+                    if (this.saveState === 'saving') return @js(__('Saving…'));
+                    if (this.saveState === 'failed') return @js(__("Couldn't save to the server — kept in this browser for now. Still trying."));
+                    if (this.saveState === 'saved') {
+                        const time = this.savedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        return @js(__('Draft saved at :time')).replace(':time', time);
+                    }
+                    return '';
+                },
                 saveLocal() {
                     try {
                         localStorage.setItem(this.storageKey, JSON.stringify({ ...this.snapshot(), savedAt: Date.now() }));
@@ -99,6 +217,8 @@
                     } catch (e) {}
 
                     if (!stored || typeof stored.body !== 'string' || stored.body === '' || stored.body === this.body) return;
+                    // Older than what the server has (e.g. edited since on another device).
+                    if (this.serverUpdatedAt && stored.savedAt < this.serverUpdatedAt) return;
 
                     this.body = stored.body;
                     this.query = stored.query ?? this.query;
@@ -106,18 +226,16 @@
                     this.recipientId = stored.recipientId ?? this.recipientId;
                     this.enclosureUrls = Array.isArray(stored.enclosureUrls) ? stored.enclosureUrls : this.enclosureUrls;
                     this.restoredLocally = true;
-                    this.$nextTick(() => { this.dirty = true; });
                 },
                 discardLocal() {
                     try { localStorage.removeItem(this.storageKey); } catch (e) {}
-                    clearTimeout(this.saveTimer);
                     Object.assign(this, { ...this.serverCopy, lastSelectedQuery: this.serverCopy.query, enclosureUrls: [...this.serverCopy.enclosureUrls] });
                     this.restoredLocally = false;
-                    // The watchers fire after this tick; undo what they schedule.
-                    setTimeout(() => { clearTimeout(this.saveTimer); this.dirty = false; });
+                    // The watchers fire after this tick; undo the local save they schedule.
+                    setTimeout(() => clearTimeout(this.localTimer));
                 },
                 refreshCsrfToken() {
-                    fetch(@js(route('csrf-token')), { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+                    return fetch(@js(route('csrf-token')), { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
                         .then(r => r.ok ? r.json() : null)
                         .then(data => {
                             if (!data?.token) return;
@@ -235,14 +353,13 @@
             @endif
 
             <div class="pp-letter-plain p-8 sm:p-12" :class="{ 'pp-editor-fullscreen': fullscreen }">
-                <form id="letter-form" method="POST"
+                <form id="letter-form" method="POST" x-ref="form"
                     action="{{ $letter->exists ? route('messages.update', $letter) : route('messages.store') }}"
-                    @submit="submitting = true; $dispatch('letter-submitting')">
+                    :action="formAction" @submit="onSubmit($event)">
                     @csrf
                     <input type="hidden" name="intent" id="intent-field" value="draft">
-                    @if ($letter->exists)
-                        @method('PUT')
-                    @endif
+                    {{-- Bound rather than @method, because an autosave can turn a new letter into a draft. --}}
+                    <input type="hidden" name="_method" value="PUT" :disabled="!draftId" @disabled(! $letter->exists)>
 
                     <div class="text-right">
                         <p class="pp-serif" style="color: var(--ink-soft);">
@@ -312,6 +429,8 @@
                 <p class="pp-mono text-xs" style="color: var(--ink-soft); margin: 0;">
                     {{ __('Sending is final — letters can\'t be unsent or edited once sealed.') }}
                 </p>
+                <p class="pp-mono text-xs" style="margin: 0;" role="status" x-text="saveStatus()"
+                    :style="{ color: saveState === 'failed' ? 'var(--error-red)' : 'var(--ink-soft)' }"></p>
             </div>
 
 

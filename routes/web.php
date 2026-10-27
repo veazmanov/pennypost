@@ -48,6 +48,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/messages/create', [MessageController::class, 'create'])->name('messages.create');
     Route::get('/messages/{message}/edit', [MessageController::class, 'edit'])->name('messages.edit');
     Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
+    Route::middleware('throttle:120,1')->group(function () {
+        Route::post('/messages/autosave', [MessageController::class, 'autosaveStore'])->name('messages.autosave.store');
+        Route::put('/messages/{message}/autosave', [MessageController::class, 'autosaveUpdate'])->name('messages.autosave.update');
+    });
     Route::put('/messages/{message}', [MessageController::class, 'update'])->name('messages.update');
     Route::delete('/messages/{message}', [MessageController::class, 'destroy'])->name('messages.destroy');
 

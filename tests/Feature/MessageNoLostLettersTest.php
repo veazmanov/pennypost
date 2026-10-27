@@ -252,3 +252,108 @@ test('the csrf token endpoint returns a token', function () {
         ->assertOk()
         ->assertJsonStructure(['token']);
 });
+
+// --- Background autosave ---------------------------------------------------------------
+
+test('the first autosave of a new letter creates a draft and says where it lives', function () {
+    $sender = User::factory()->create();
+
+    $response = $this->actingAs($sender)->postJson(route('messages.autosave.store'), [
+        'body' => 'Typed for two hours.',
+    ]);
+
+    $draft = Message::sole();
+
+    $response->assertOk()->assertJson([
+        'saved' => true,
+        'id' => $draft->id,
+        'update_url' => route('messages.update', $draft),
+        'autosave_url' => route('messages.autosave.update', $draft),
+        'edit_url' => route('messages.edit', $draft),
+    ]);
+    expect($draft->is_draft)->toBeTrue();
+    expect($draft->sender_id)->toBe($sender->id);
+    expect($draft->body)->toBe('Typed for two hours.');
+});
+
+test('autosave does not create a draft for a letter with no text', function () {
+    $sender = User::factory()->create();
+    $recipient = User::factory()->create();
+
+    $this->actingAs($sender)->postJson(route('messages.autosave.store'), [
+        'body' => '   ',
+        'recipient_id' => $recipient->id,
+    ])->assertOk()->assertJson(['saved' => false]);
+
+    expect(Message::count())->toBe(0);
+});
+
+test('autosave updates an existing draft and is lenient about half-finished fields', function () {
+    $sender = User::factory()->create();
+    $draft = Message::factory()->for($sender, 'sender')->draft()->create(['recipient_id' => null, 'body' => 'old']);
+
+    $this->actingAs($sender)->putJson(route('messages.autosave.update', $draft), [
+        'body' => 'newer',
+        'recipient_name' => 'Nobody Matches',
+        'enclosures' => ['https://example.com/ok', 'htt', ''],
+    ])->assertOk()->assertJson(['saved' => true, 'id' => $draft->id]);
+
+    $draft->refresh();
+    expect(Message::count())->toBe(1);
+    expect($draft->is_draft)->toBeTrue();
+    expect($draft->body)->toBe('newer');
+    expect($draft->recipient_id)->toBeNull();
+    expect($draft->enclosures)->toBe(['https://example.com/ok']);
+});
+
+test('autosave resolves a typed name and drops yourself or a deleted member', function () {
+    $sender = User::factory()->create();
+    $recipient = User::factory()->create(['name' => 'Ada Lovelace']);
+    $gone = User::factory()->create();
+    $gone->delete();
+    $draft = Message::factory()->for($sender, 'sender')->draft()->create(['recipient_id' => null]);
+
+    $this->actingAs($sender)->putJson(route('messages.autosave.update', $draft), [
+        'body' => 'hi', 'recipient_name' => 'ada lovelace',
+    ])->assertOk();
+    expect($draft->fresh()->recipient_id)->toBe($recipient->id);
+
+    foreach ([$sender->id, $gone->id] as $id) {
+        $this->actingAs($sender)->putJson(route('messages.autosave.update', $draft), [
+            'body' => 'hi', 'recipient_id' => $id,
+        ])->assertOk();
+        expect($draft->fresh()->recipient_id)->toBeNull();
+    }
+});
+
+test('autosave never touches someone elses draft or a sealed letter', function () {
+    $owner = User::factory()->create();
+    $intruder = User::factory()->create();
+    $recipient = User::factory()->create();
+    $draft = Message::factory()->for($owner, 'sender')->draft()->create(['body' => 'private']);
+    $sealed = Message::factory()->for($owner, 'sender')->for($recipient, 'recipient')->create(['body' => 'final']);
+
+    $this->actingAs($intruder)->putJson(route('messages.autosave.update', $draft), ['body' => 'hijacked'])->assertNotFound();
+    $this->actingAs($owner)->putJson(route('messages.autosave.update', $sealed), ['body' => 'changed'])->assertNotFound();
+
+    expect($draft->fresh()->body)->toBe('private');
+    expect($sealed->fresh()->body)->toBe('final');
+    expect($sealed->fresh()->is_draft)->toBeFalse();
+});
+
+test('autosave rejects a body over the length limit without changing the draft', function () {
+    $sender = User::factory()->create();
+    $draft = Message::factory()->for($sender, 'sender')->draft()->create(['body' => 'kept']);
+
+    $this->actingAs($sender)->putJson(route('messages.autosave.update', $draft), [
+        'body' => str_repeat('a', config('pennypost.max_letter_length') + 1),
+    ])->assertUnprocessable()->assertJsonValidationErrors('body');
+
+    expect($draft->fresh()->body)->toBe('kept');
+});
+
+test('autosave requires being logged in', function () {
+    $this->postJson(route('messages.autosave.store'), ['body' => 'hi'])->assertUnauthorized();
+
+    expect(Message::count())->toBe(0);
+});

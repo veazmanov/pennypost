@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Message;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -140,6 +141,21 @@ class MessageController extends Controller
         );
 
         return $this->save($request, $message);
+    }
+
+    public function autosaveStore(Request $request): JsonResponse
+    {
+        return $this->autosave($request, new Message(['sender_id' => $request->user()->id]));
+    }
+
+    public function autosaveUpdate(Request $request, Message $message): JsonResponse
+    {
+        abort_unless(
+            $message->sender_id === $request->user()->id && $message->is_draft,
+            404
+        );
+
+        return $this->autosave($request, $message);
     }
 
     public function destroy(Request $request, Message $message): RedirectResponse
@@ -289,6 +305,53 @@ class MessageController extends Controller
             ->with('deliveryDayOrdinal', $message->scheduled_for->format('jS'));
     }
 
+    /**
+     * The compose page's background save. Lenient on purpose: anything
+     * that isn't valid yet (a half-typed link, a name with no match) is
+     * left out rather than rejected, so the body always gets through.
+     */
+    protected function autosave(Request $request, Message $message): JsonResponse
+    {
+        $validated = $request->validate([
+            'body' => ['nullable', 'string', 'max:'.config('pennypost.max_letter_length')],
+            'recipient_name' => ['nullable', 'string', 'max:255'],
+            'enclosures' => ['nullable', 'array'],
+        ], [
+            'body.max' => __('You have run out of ink.'),
+        ]);
+
+        $body = $validated['body'] ?? '';
+
+        // An untouched compose page shouldn't leave empty drafts behind.
+        if (! $message->exists && trim($body) === '') {
+            return response()->json(['saved' => false]);
+        }
+
+        $userId = $request->user()->id;
+        $recipientId = $request->input('recipient_id');
+        $typedName = trim((string) ($validated['recipient_name'] ?? ''));
+        if (blank($recipientId) && $typedName !== '') {
+            $recipientId = $this->resolveRecipientByName($typedName, $userId)?->id;
+        }
+
+        $this->storeDraft(
+            $message,
+            $userId,
+            $this->validRecipientId($recipientId, $userId),
+            $body,
+            $this->validEnclosures($validated['enclosures'] ?? []),
+        );
+
+        return response()->json([
+            'saved' => true,
+            'id' => $message->id,
+            'update_url' => route('messages.update', $message),
+            'autosave_url' => route('messages.autosave.update', $message),
+            'edit_url' => route('messages.edit', $message),
+            'saved_at' => $message->updated_at->toIso8601String(),
+        ]);
+    }
+
     protected function storeDraft(Message $message, int $userId, ?int $recipientId, string $body, array $enclosures): void
     {
         $message->sender_id = $userId;
@@ -332,7 +395,8 @@ class MessageController extends Controller
     protected function validEnclosures(mixed $urls): array
     {
         return collect(is_array($urls) ? $urls : [])
-            ->filter(fn ($url) => is_string($url) && Validator::make(['url' => $url], ['url' => ['url', 'max:2048']])->passes())
+            ->map(fn ($url) => is_string($url) ? trim($url) : null)
+            ->filter(fn ($url) => $url && Validator::make(['url' => $url], ['url' => ['url', 'max:2048']])->passes())
             ->take(5)
             ->values()
             ->all();
