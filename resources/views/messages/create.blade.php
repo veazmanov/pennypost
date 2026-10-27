@@ -34,270 +34,36 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="pp-content-wrap" x-data="{
-                query: @js(old('recipient_name', $letter->recipient->name ?? request('to_name', ''))),
-                recipientId: @js(old('recipient_id', $letter->recipient_id ?? request('to_id', ''))),
-                lastSelectedQuery: @js(old('recipient_name', $letter->recipient->name ?? request('to_name', ''))),
-                results: [],
-                open: false,
-                body: @js(old('body', $letter->body ?? '')),
-                enclosureUrls: @js(old('enclosures', $letter->enclosures ?? [])),
-                fullscreen: false,
-                submitting: false,
-                recipientProblem: '',
-                bodyProblem: '',
-                storageKeyPrefix: @js('pp-letter:'.auth()->id().':'),
-                storageKey: @js('pp-letter:'.auth()->id().':'.($letter->id ?? 'new')),
-                serverUpdatedAt: @js($letter->updated_at?->getTimestampMs()),
-                serverCopy: null,
-                restoredLocally: false,
-                localTimer: null,
-                draftId: @js($letter->id),
-                formAction: @js($letter->exists ? route('messages.update', $letter) : route('messages.store')),
-                autosaveUrl: @js($letter->exists ? route('messages.autosave.update', $letter) : route('messages.autosave.store')),
-                lastSavedJson: null,
-                lastChangeAt: 0,
-                lastAutosaveAt: Date.now(),
-                autosaving: false,
-                pendingSubmit: false,
-                saveState: '',
-                savedAt: null,
-                init() {
-                    this.$watch('fullscreen', (value) => {
-                        document.body.classList.toggle('pp-fullscreen-editor', value);
-                    });
-
-                    this.serverCopy = this.snapshot();
-                    // Old input (e.g. after a 419) may never have reached the database.
-                    if (this.draftId && !@js(session()->hasOldInput())) this.lastSavedJson = JSON.stringify(this.payload());
-                    this.restoreLocal();
-
-                    ['body', 'query', 'recipientId', 'enclosureUrls'].forEach((field) => {
-                        this.$watch(field, () => {
-                            this.lastChangeAt = Date.now();
-                            clearTimeout(this.localTimer);
-                            this.localTimer = setTimeout(() => this.saveLocal(), 500);
-                        });
-                    });
-                    this.$watch('recipientId', (id) => { if (id) this.recipientProblem = ''; });
-                    this.$watch('body', (body) => { if (body.trim()) this.bodyProblem = ''; });
-
-                    // Save to the server once typing pauses for 2s, and at least every 20s
-                    // while it doesn't. After a failure, back off for 15s.
-                    setInterval(() => {
-                        if (!this.hasUnsavedChanges()) return;
-                        const sinceSave = Date.now() - this.lastAutosaveAt;
-                        if (this.saveState === 'failed' && sinceSave < 15000) return;
-                        if (Date.now() - this.lastChangeAt >= 2000 || sinceSave >= 20000) this.autosave();
-                    }, 2000);
-
-                    // Phones kill background tabs without warning, so save on the way out.
-                    document.addEventListener('visibilitychange', () => {
-                        if (document.visibilityState === 'hidden') this.autosave(true);
-                    });
-
-                    window.addEventListener('beforeunload', (event) => {
-                        if (this.hasUnsavedChanges() && !this.submitting) {
-                            event.preventDefault();
-                            event.returnValue = '';
-                        }
-                    });
-
-                    // Keeps the session (and its CSRF token) alive while the letter is open.
-                    setInterval(() => this.refreshCsrfToken(), 10 * 60 * 1000);
-                },
-                snapshot() {
-                    return {
-                        body: this.body,
-                        query: this.query,
-                        recipientId: this.recipientId,
-                        enclosureUrls: [...this.enclosureUrls],
-                    };
-                },
-                payload() {
-                    return {
-                        body: this.body,
-                        recipient_id: this.recipientId || null,
-                        recipient_name: this.query,
-                        enclosures: [...this.enclosureUrls],
-                    };
-                },
-                hasUnsavedChanges() {
-                    // A new letter with nothing written isn't worth keeping.
-                    if (!this.draftId && !this.body.trim()) return false;
-                    return JSON.stringify(this.payload()) !== this.lastSavedJson;
-                },
-                autosave(leavingPage = false) {
-                    if (this.autosaving || this.submitting || !this.hasUnsavedChanges()) return;
-
-                    const json = JSON.stringify(this.payload());
-                    this.autosaving = true;
-                    this.saveState = 'saving';
-
-                    fetch(this.autosaveUrl, {
-                        method: this.draftId ? 'PUT' : 'POST',
-                        credentials: 'same-origin',
-                        // keepalive lets the request outlive the page, but caps the body at 64KB.
-                        keepalive: leavingPage && json.length < 60000,
-                        headers: {
-                            'Content-Type': 'application/json',
-                            Accept: 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '',
-                        },
-                        body: json,
-                    })
-                        .then(r => {
-                            if (r.status === 419) this.refreshCsrfToken();
-                            if (!r.ok) throw new Error(r.status);
-                            return r.json();
-                        })
-                        .then(data => {
-                            if (!data.saved) { this.saveState = ''; return; }
-                            this.lastSavedJson = json;
-                            if (!this.draftId) this.adoptDraft(data);
-                            this.savedAt = new Date(data.saved_at);
-                            this.saveState = 'saved';
-                            // The server has everything this browser has, so the local copy can go.
-                            if (!this.hasUnsavedChanges()) {
-                                clearTimeout(this.localTimer);
-                                try { localStorage.removeItem(this.storageKey); } catch (e) {}
-                            }
-                        })
-                        .catch(() => { this.saveState = 'failed'; })
-                        .finally(() => {
-                            this.autosaving = false;
-                            this.lastAutosaveAt = Date.now();
-                            if (this.pendingSubmit) {
-                                this.pendingSubmit = false;
-                                this.$nextTick(() => this.$refs.form.requestSubmit());
-                            }
-                        });
-                },
-                // The first background save of a new letter creates a draft; from
-                // then on, everything (including Save draft and Seal & send) updates it.
-                adoptDraft(data) {
-                    this.draftId = data.id;
-                    this.formAction = data.update_url;
-                    this.autosaveUrl = data.autosave_url;
-                    try { localStorage.removeItem(this.storageKey); } catch (e) {}
-                    this.storageKey = this.storageKeyPrefix + data.id;
-                    this.saveLocal();
-                    history.replaceState(history.state, '', data.edit_url);
-                },
-                onSubmit(event) {
-                    // Let an in-flight autosave finish first, or a new letter could
-                    // be created twice: once by the autosave, once by this submit.
-                    if (this.autosaving) {
-                        event.preventDefault();
-                        this.pendingSubmit = true;
-                        return;
-                    }
-                    this.submitting = true;
-                    this.$dispatch('letter-submitting');
-                },
-                saveStatus() {
-                    if (this.saveState === 'saving') return @js(__('Saving…'));
-                    if (this.saveState === 'failed') return @js(__("Couldn't save to the server — kept in this browser for now. Still trying."));
-                    if (this.saveState === 'saved') {
-                        const time = this.savedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        return @js(__('Draft saved at :time')).replace(':time', time);
-                    }
-                    return '';
-                },
-                saveLocal() {
-                    try {
-                        localStorage.setItem(this.storageKey, JSON.stringify({ ...this.snapshot(), savedAt: Date.now() }));
-                    } catch (e) {}
-                },
-                restoreLocal() {
-                    let stored = null;
-                    try {
-                        stored = JSON.parse(localStorage.getItem(this.storageKey));
-                    } catch (e) {}
-
-                    if (!stored || typeof stored.body !== 'string' || stored.body === '' || stored.body === this.body) return;
-                    // Older than what the server has (e.g. edited since on another device).
-                    if (this.serverUpdatedAt && stored.savedAt < this.serverUpdatedAt) return;
-
-                    this.body = stored.body;
-                    this.query = stored.query ?? this.query;
-                    this.lastSelectedQuery = this.query;
-                    this.recipientId = stored.recipientId ?? this.recipientId;
-                    this.enclosureUrls = Array.isArray(stored.enclosureUrls) ? stored.enclosureUrls : this.enclosureUrls;
-                    this.restoredLocally = true;
-                },
-                discardLocal() {
-                    try { localStorage.removeItem(this.storageKey); } catch (e) {}
-                    Object.assign(this, { ...this.serverCopy, lastSelectedQuery: this.serverCopy.query, enclosureUrls: [...this.serverCopy.enclosureUrls] });
-                    this.restoredLocally = false;
-                    // The watchers fire after this tick; undo the local save they schedule.
-                    setTimeout(() => clearTimeout(this.localTimer));
-                },
-                refreshCsrfToken() {
-                    return fetch(@js(route('csrf-token')), { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
-                        .then(r => r.ok ? r.json() : null)
-                        .then(data => {
-                            if (!data?.token) return;
-                            document.querySelectorAll('input[name=_token]').forEach(input => input.value = data.token);
-                            document.querySelector('meta[name=csrf-token]')?.setAttribute('content', data.token);
-                        })
-                        .catch(() => {});
-                },
-                search() {
-                    if (this.query !== this.lastSelectedQuery) {
-                        this.recipientId = '';
-                    }
-
-                    const query = this.query;
-                    if (query.length < 1) { this.results = []; this.open = false; return; }
-                    fetch(`{{ route('users.search') }}?q=${encodeURIComponent(query)}`)
-                        .then(r => r.json())
-                        .then(data => {
-                            if (query !== this.query) return; // a newer search is on its way
-                            this.results = data;
-                            this.open = data.length > 0;
-                            this.selectExactMatch();
-                        });
-                },
-                selectExactMatch() {
-                    const typed = this.query.trim().toLowerCase();
-                    const exact = this.results.filter(user => user.name.trim().toLowerCase() === typed);
-                    if (exact.length === 1 && !this.recipientId) {
-                        this.recipientId = exact[0].id;
-                        this.lastSelectedQuery = this.query;
-                    }
-                },
-                select(user) {
-                    this.recipientId = user.id;
-                    this.query = user.name;
-                    this.lastSelectedQuery = user.name;
-                    this.open = false;
-                    this.results = [];
-                },
-                requestSend() {
-                    if (!this.recipientId) this.selectExactMatch();
-
-                    this.recipientProblem = '';
-                    this.bodyProblem = '';
-
-                    if (!this.recipientId) {
-                        this.recipientProblem = this.query.trim()
-                            ? @js(__("We couldn't find that person — pick them from the suggestions before sending."))
-                            : @js(__('Who is this letter to? Type their name and pick them from the suggestions.'));
-                        this.$refs.recipient.focus();
-                        return;
-                    }
-
-                    if (!this.body.trim()) {
-                        this.bodyProblem = @js(__('Your letter is empty — write something before sealing it.'));
-                        this.$refs.body.focus();
-                        return;
-                    }
-
-                    this.$dispatch('open-modal', 'confirm-send');
-                },
-            }" x-on:toggle-fullscreen.window="fullscreen = !fullscreen"
+        @php
+            $compose = [
+                'letter' => [
+                    'id' => $letter->id,
+                    'body' => old('body', $letter->body ?? ''),
+                    'recipientId' => old('recipient_id', $letter->recipient_id ?? request('to_id', '')),
+                    'recipientName' => old('recipient_name', $letter->recipient->name ?? request('to_name', '')),
+                    'enclosures' => old('enclosures', $letter->enclosures ?? []),
+                    'updatedAt' => $letter->updated_at?->getTimestampMs(),
+                ],
+                'hasOldInput' => session()->hasOldInput(),
+                'storageKeyPrefix' => 'pp-letter:'.auth()->id().':',
+                'urls' => [
+                    'form' => $letter->exists ? route('messages.update', $letter) : route('messages.store'),
+                    'autosave' => $letter->exists ? route('messages.autosave.update', $letter) : route('messages.autosave.store'),
+                    'search' => route('users.search'),
+                    'csrfToken' => route('csrf-token'),
+                ],
+                'messages' => [
+                    'saving' => __('Saving…'),
+                    'saveFailed' => __("Couldn't save to the server — kept in this browser for now. Still trying."),
+                    'savedAt' => __('Draft saved at :time'),
+                    'recipientNotFound' => __("We couldn't find that person — pick them from the suggestions before sending."),
+                    'recipientMissing' => __('Who is this letter to? Type their name and pick them from the suggestions.'),
+                    'bodyEmpty' => __('Your letter is empty — write something before sealing it.'),
+                ],
+            ];
+        @endphp
+        <div class="pp-content-wrap" x-data="compose(@js($compose))"
+            x-on:toggle-fullscreen.window="fullscreen = !fullscreen"
             x-on:request-send.window="requestSend()"
             x-on:keydown.escape.window="if (fullscreen) fullscreen = false">
 
