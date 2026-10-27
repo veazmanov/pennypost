@@ -27,6 +27,8 @@ Route::get('/about', function () {
     ]);
 })->name('about');
 Route::view('/privacy', 'privacy')->name('privacy');
+// Pinged by the compose page so a long letter doesn't outlive its CSRF token.
+Route::get('/csrf-token', fn () => response()->json(['token' => csrf_token()]))->name('csrf-token');
 Route::get('/u/{username}', [PublicProfileController::class, 'show'])->name('profile.public');
 Route::get('/profile/delete/{user}', [ProfileController::class, 'confirmDestroy'])
     ->middleware(['signed', 'throttle:6,1'])

@@ -25,7 +25,7 @@
                     @click="document.getElementById('intent-field').value = 'draft'; document.getElementById('letter-form').requestSubmit();">
                     {{ __('Save draft') }}
                 </button>
-                <button type="button" @click="$dispatch('open-modal', 'confirm-send')" class="pp-btn pp-btn-solid"
+                <button type="button" @click="$dispatch('request-send')" class="pp-btn pp-btn-solid"
                     style="padding: 11px 28px; font-size: 15px;" :disabled="submitting">
                     {{ __('Seal & send') }}
                 </button>
@@ -44,20 +44,111 @@
                 enclosureUrls: @js(old('enclosures', $letter->enclosures ?? [])),
                 fullscreen: false,
                 submitting: false,
+                recipientProblem: '',
+                bodyProblem: '',
+                storageKey: @js('pp-letter:'.auth()->id().':'.($letter->id ?? 'new')),
+                serverCopy: null,
+                restoredLocally: false,
+                dirty: false,
+                saveTimer: null,
                 init() {
                     this.$watch('fullscreen', (value) => {
                         document.body.classList.toggle('pp-fullscreen-editor', value);
                     });
+
+                    this.serverCopy = this.snapshot();
+                    this.restoreLocal();
+
+                    ['body', 'query', 'recipientId', 'enclosureUrls'].forEach((field) => {
+                        this.$watch(field, () => {
+                            this.dirty = true;
+                            clearTimeout(this.saveTimer);
+                            this.saveTimer = setTimeout(() => this.saveLocal(), 500);
+                        });
+                    });
+                    this.$watch('recipientId', (id) => { if (id) this.recipientProblem = ''; });
+                    this.$watch('body', (body) => { if (body.trim()) this.bodyProblem = ''; });
+
+                    window.addEventListener('beforeunload', (event) => {
+                        if (this.dirty && !this.submitting) {
+                            event.preventDefault();
+                            event.returnValue = '';
+                        }
+                    });
+
+                    // Keeps the session (and its CSRF token) alive while the letter is open.
+                    setInterval(() => this.refreshCsrfToken(), 10 * 60 * 1000);
+                },
+                snapshot() {
+                    return {
+                        body: this.body,
+                        query: this.query,
+                        recipientId: this.recipientId,
+                        enclosureUrls: [...this.enclosureUrls],
+                    };
+                },
+                saveLocal() {
+                    try {
+                        localStorage.setItem(this.storageKey, JSON.stringify({ ...this.snapshot(), savedAt: Date.now() }));
+                    } catch (e) {}
+                },
+                restoreLocal() {
+                    let stored = null;
+                    try {
+                        stored = JSON.parse(localStorage.getItem(this.storageKey));
+                    } catch (e) {}
+
+                    if (!stored || typeof stored.body !== 'string' || stored.body === '' || stored.body === this.body) return;
+
+                    this.body = stored.body;
+                    this.query = stored.query ?? this.query;
+                    this.lastSelectedQuery = this.query;
+                    this.recipientId = stored.recipientId ?? this.recipientId;
+                    this.enclosureUrls = Array.isArray(stored.enclosureUrls) ? stored.enclosureUrls : this.enclosureUrls;
+                    this.restoredLocally = true;
+                    this.$nextTick(() => { this.dirty = true; });
+                },
+                discardLocal() {
+                    try { localStorage.removeItem(this.storageKey); } catch (e) {}
+                    clearTimeout(this.saveTimer);
+                    Object.assign(this, { ...this.serverCopy, lastSelectedQuery: this.serverCopy.query, enclosureUrls: [...this.serverCopy.enclosureUrls] });
+                    this.restoredLocally = false;
+                    // The watchers fire after this tick; undo what they schedule.
+                    setTimeout(() => { clearTimeout(this.saveTimer); this.dirty = false; });
+                },
+                refreshCsrfToken() {
+                    fetch(@js(route('csrf-token')), { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+                        .then(r => r.ok ? r.json() : null)
+                        .then(data => {
+                            if (!data?.token) return;
+                            document.querySelectorAll('input[name=_token]').forEach(input => input.value = data.token);
+                            document.querySelector('meta[name=csrf-token]')?.setAttribute('content', data.token);
+                        })
+                        .catch(() => {});
                 },
                 search() {
                     if (this.query !== this.lastSelectedQuery) {
                         this.recipientId = '';
                     }
 
-                    if (this.query.length < 1) { this.results = []; this.open = false; return; }
-                    fetch(`{{ route('users.search') }}?q=${encodeURIComponent(this.query)}`)
+                    const query = this.query;
+                    if (query.length < 1) { this.results = []; this.open = false; return; }
+                    fetch(`{{ route('users.search') }}?q=${encodeURIComponent(query)}`)
                         .then(r => r.json())
-                        .then(data => { this.results = data; this.open = data.length > 0; });
+                        .then(data => {
+                            if (query !== this.query) return; // a newer search is on its way
+                            this.results = data;
+                            this.open = data.length > 0;
+                            this.selectExactMatch();
+                        });
+                },
+                selectExactMatch() {
+                    const typed = this.query.trim().toLowerCase();
+                    const exact = this.results.filter(user => user.name.trim().toLowerCase() === typed);
+                    if (exact.length === 1 && !this.recipientId) {
+                        this.recipientId = exact[0].id;
+                        this.lastSelectedQuery = this.query;
+                    }
                 },
                 select(user) {
                     this.recipientId = user.id;
@@ -66,13 +157,58 @@
                     this.open = false;
                     this.results = [];
                 },
+                requestSend() {
+                    if (!this.recipientId) this.selectExactMatch();
+
+                    this.recipientProblem = '';
+                    this.bodyProblem = '';
+
+                    if (!this.recipientId) {
+                        this.recipientProblem = this.query.trim()
+                            ? @js(__("We couldn't find that person — pick them from the suggestions before sending."))
+                            : @js(__('Who is this letter to? Type their name and pick them from the suggestions.'));
+                        this.$refs.recipient.focus();
+                        return;
+                    }
+
+                    if (!this.body.trim()) {
+                        this.bodyProblem = @js(__('Your letter is empty — write something before sealing it.'));
+                        this.$refs.body.focus();
+                        return;
+                    }
+
+                    this.$dispatch('open-modal', 'confirm-send');
+                },
             }" x-on:toggle-fullscreen.window="fullscreen = !fullscreen"
+            x-on:request-send.window="requestSend()"
             x-on:keydown.escape.window="if (fullscreen) fullscreen = false">
 
             <div x-show="fullscreen" x-cloak class="mb-6">
                 <button type="button" @click="fullscreen = false" class="pp-mono text-xs"
                     style="color: var(--ink-soft); background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;">
                     {{ __('← Exit full screen') }}
+                </button>
+            </div>
+
+            @if (session('status') === 'send-failed' || $errors->has('session'))
+                <div class="pp-banner mb-4" role="alert"
+                    style="flex-direction: column; align-items: flex-start; margin-top: 0; border-color: var(--error-red); color: var(--error-red);">
+                    @if (session('status') === 'send-failed')
+                        <strong>{{ __('Your letter was NOT sent. It\'s been saved as a draft.') }}</strong>
+                    @endif
+                    <ul class="text-sm" style="margin: 0; padding-left: 1.25rem; list-style: disc;">
+                        @foreach (array_unique($errors->all()) as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <div x-show="restoredLocally" x-cloak class="pp-banner mb-4" style="margin-top: 0;">
+                <span>{{ __('Restored unsaved text from this browser.') }}</span>
+                <button type="button" @click="discardLocal()" class="pp-mono text-xs"
+                    style="color: inherit; background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;">
+                    {{ __('discard') }}
                 </button>
             </div>
 
@@ -123,9 +259,11 @@
                                 <span aria-hidden="true"
                                     class="pp-input-line pp-input-line--flush pp-serif uppercase [grid-area:1/1] invisible whitespace-pre min-w-56 pr-[1ch]"
                                     x-text="query || ' '"></span>
-                                <input id="recipient_name" type="text" autocomplete="off"
+                                {{-- Enter here must never submit: the form's default intent is a draft, so it would quietly save an unaddressed one. --}}
+                                <input id="recipient_name" name="recipient_name" type="text" autocomplete="off"
                                     class="pp-input-line pp-input-line--flush pp-serif uppercase [grid-area:1/1] min-w-0"
-                                    x-model="query" @input="search()">
+                                    x-ref="recipient" x-model="query" @input="search()"
+                                    @keydown.enter.prevent="if (open && results.length) select(results[0])">
                             </span>
                         </div>
                         <input type="hidden" name="recipient_id" x-model="recipientId">
@@ -139,17 +277,24 @@
                             </template>
                         </ul>
 
+                        <p x-show="recipientProblem" x-cloak x-text="recipientProblem" role="alert"
+                            class="mt-2 text-sm text-[var(--error-red)]"></p>
                         @error('recipient_id')
                             <p class="mt-2 text-sm text-[var(--error-red)]">{{ $message }}</p>
                         @enderror
+                        @if (session('recipientWarning'))
+                            <p class="mt-2 text-sm text-[var(--error-red)]">{{ session('recipientWarning') }}</p>
+                        @endif
                     </div>
 
                     <div class="mt-8">
                         <label for="body" class="sr-only">{{ __('Your letter') }}</label>
                         <textarea id="body" name="body" rows="10"
                             maxlength="{{ config('pennypost.max_letter_length') }}"
-                            x-model="body"
+                            x-ref="body" x-model="body"
                             class="pp-textarea-plain pp-serif mt-3 text-[1.25rem] leading-[1.75]"></textarea>
+                        <p x-show="bodyProblem" x-cloak x-text="bodyProblem" role="alert"
+                            class="mt-2 text-sm text-[var(--error-red)]"></p>
                         @error('body')
                             <p class="mt-2 text-sm text-[var(--error-red)]">{{ $message }}</p>
                         @enderror
@@ -187,7 +332,7 @@
                                 <span x-show="enclosureUrls.length > 1" x-cloak x-text="'#' + (index + 1)"
                                     class="pp-mono text-xs shrink-0" style="color: var(--ink-soft); width: 1.5rem;"></span>
                                 <input type="url" :name="`enclosures[${index}]`" form="letter-form" placeholder="https://…"
-                                    x-model="enclosureUrls[index]" class="pp-enclosure-input flex-1">
+                                    x-model="enclosureUrls[index]" @keydown.enter.prevent class="pp-enclosure-input flex-1">
                                 <button type="button" @click="enclosureUrls.splice(index, 1)"
                                     class="pp-mono text-xs shrink-0"
                                     style="color: var(--ink-soft); background: none; border: none; cursor: pointer;"
@@ -219,7 +364,7 @@
                     @click="document.getElementById('intent-field').value = 'draft'; document.getElementById('letter-form').requestSubmit();">
                     {{ __('Save draft') }}
                 </button>
-                <button type="button" @click="$dispatch('open-modal', 'confirm-send')" class="pp-btn pp-btn-solid"
+                <button type="button" @click="$dispatch('request-send')" class="pp-btn pp-btn-solid"
                     :disabled="submitting">
                     {{ __('Seal & send') }}
                 </button>
@@ -250,8 +395,8 @@
             </x-modal>
 
             @if ($letter->exists && $letter->is_draft)
-                <form method="POST" action="{{ route('messages.destroy', $letter) }}"
-                    onsubmit="return confirm('{{ __('Delete this draft for good?') }}')" class="mt-4 text-right">
+                <form method="POST" action="{{ route('messages.destroy', $letter) }}" class="mt-4 text-right"
+                    @submit="if (!confirm(@js(__('Delete this draft for good?')))) { $event.preventDefault(); return; } submitting = true">
                     @csrf
                     @method('DELETE')
                     <button type="submit"

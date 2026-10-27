@@ -7,6 +7,7 @@ use App\Models\Message;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -155,11 +156,19 @@ class MessageController extends Controller
 
 
 
+    /**
+     * Saving and sending share one rule: whatever the user typed must end
+     * up somewhere they can find it. A draft save never fails over the
+     * recipient (a bad one is dropped with a warning), and a send that
+     * fails validation is stored as a draft before we bounce them back.
+     */
     protected function save(Request $request, Message $message): RedirectResponse
     {
         $intent = $request->input('intent', 'draft');
         abort_unless(in_array($intent, ['draft', 'send'], true), 422);
         $wantsToSend = $intent === 'send';
+        $userId = $request->user()->id;
+        $wasNew = ! $message->exists;
 
         $notPennyPostMember = "That doesn't look like a Penny Post member — pick someone from the suggestions.";
 
@@ -173,6 +182,15 @@ class MessageController extends Controller
                 ->all(),
         ]);
 
+        // Someone who typed a name but never clicked a suggestion still
+        // meant that person — as long as the name is unambiguous.
+        $typedName = trim((string) $request->input('recipient_name', ''));
+        if (! $request->filled('recipient_id') && $typedName !== '') {
+            $request->merge(['recipient_id' => $this->resolveRecipientByName($typedName, $userId)?->id]);
+        }
+
+        $recipientId = $this->validRecipientId($request->input('recipient_id'), $userId);
+
         $enclosureRules = [
             'enclosures' => ['nullable', 'array', 'max:5'],
             'enclosures.*' => ['url', 'max:2048'],
@@ -183,50 +201,77 @@ class MessageController extends Controller
 
         if (! $wantsToSend) {
             $validated = $request->validate([
-                'recipient_id' => [
-                    'nullable', 'integer',
-                    Rule::exists('users', 'id')->whereNull('deleted_at'),
-                    Rule::notIn([$request->user()->id]),
-                ],
                 'body' => ['nullable', 'string', 'max:'.config('pennypost.max_letter_length')],
                 ...$enclosureRules,
             ], [
-                'recipient_id.exists' => $notPennyPostMember,
                 'body.max' => __('You have run out of ink.'),
                 ...$enclosureMessages,
             ]);
 
-            $message->sender_id = $request->user()->id;
-            $message->fill([
-                'recipient_id' => $validated['recipient_id'] ?? null,
-                'body' => $validated['body'] ?? '',
-                'enclosures' => ! empty($validated['enclosures']) ? $validated['enclosures'] : null,
-                'is_draft' => true,
-                'scheduled_for' => null,
-                'sent_at' => null,
-            ])->save();
+            $this->storeDraft($message, $userId, $recipientId, $validated['body'] ?? '', $validated['enclosures'] ?? []);
 
-            return redirect()->route('messages.edit', $message)->with('status', 'draft-saved');
+            $redirect = redirect()
+                ->route('messages.edit', $message)
+                ->with('status', 'draft-saved')
+                ->with('clearLocalDraft', $this->localDraftKeys($message, $wasNew));
+
+            $askedFor = $request->filled('recipient_id') || $typedName !== '';
+            if ($recipientId === null && $askedFor) {
+                $redirect->withInput(['recipient_name' => $typedName]);
+
+                if ((string) $request->input('recipient_id') === (string) $userId) {
+                    $redirect->withErrors(['recipient_id' => __("You can't send a message to yourself.")]);
+                } else {
+                    $redirect->with('recipientWarning', $typedName !== ''
+                        ? __("We couldn't find ':name' — pick them from the suggestions.", ['name' => $typedName])
+                        : __($notPennyPostMember));
+                }
+            }
+
+            return $redirect;
         }
 
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'recipient_id' => [
                 'required',
                 'integer',
                 Rule::exists('users', 'id')->whereNull('deleted_at'),
-                Rule::notIn([$request->user()->id]),
+                Rule::notIn([$userId]),
             ],
             'body' => ['required', 'string', 'max:'.config('pennypost.max_letter_length')],
             ...$enclosureRules,
         ], [
-            'recipient_id.required' => $notPennyPostMember,
+            'recipient_id.required' => $typedName !== ''
+                ? __("We couldn't find ':name' — pick them from the suggestions.", ['name' => $typedName])
+                : $notPennyPostMember,
             'recipient_id.exists' => $notPennyPostMember,
             'recipient_id.not_in' => "You can't send a message to yourself.", // TODO: rethink this - you can send messages to yourself in WhatsApp, why not here?
             'body.max' => __('You have run out of ink.'),
             ...$enclosureMessages,
         ]);
 
-        $message->sender_id = $request->user()->id;
+        if ($validator->fails()) {
+            // Not sent — but the text must survive even if they close the tab now.
+            $body = $request->input('body');
+            $this->storeDraft(
+                $message,
+                $userId,
+                $recipientId,
+                is_string($body) ? $body : '',
+                $this->validEnclosures($request->input('enclosures', [])),
+            );
+
+            return redirect()
+                ->route('messages.edit', $message)
+                ->withErrors($validator)
+                ->withInput([...$request->except('_token', 'intent'), 'recipient_id' => $recipientId])
+                ->with('status', 'send-failed')
+                ->with('clearLocalDraft', $this->localDraftKeys($message, $wasNew));
+        }
+
+        $validated = $validator->validated();
+
+        $message->sender_id = $userId;
         $message->fill([
             'recipient_id' => $validated['recipient_id'],
             'body' => $validated['body'],
@@ -239,7 +284,66 @@ class MessageController extends Controller
         return redirect()
             ->route('correspondence.show', $message->recipient)
             ->with('status', 'message-sent')
+            ->with('clearLocalDraft', $this->localDraftKeys($message, $wasNew))
             ->with('deliveryDayName', $message->scheduled_for->format('l'))
             ->with('deliveryDayOrdinal', $message->scheduled_for->format('jS'));
+    }
+
+    protected function storeDraft(Message $message, int $userId, ?int $recipientId, string $body, array $enclosures): void
+    {
+        $message->sender_id = $userId;
+        $message->fill([
+            'recipient_id' => $recipientId,
+            'body' => $body,
+            'enclosures' => ! empty($enclosures) ? $enclosures : null,
+            'is_draft' => true,
+            'scheduled_for' => null,
+            'sent_at' => null,
+        ])->save();
+    }
+
+    /**
+     * An active, onboarded member other than yourself whose name matches
+     * exactly (ignoring case and surrounding spaces). Names aren't unique,
+     * so if more than one person matches we don't guess.
+     */
+    protected function resolveRecipientByName(string $name, int $userId): ?User
+    {
+        $matches = User::query()
+            ->whereKeyNot($userId)
+            ->whereNotNull('name')
+            ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($name))])
+            ->limit(2)
+            ->get(['id']);
+
+        return $matches->count() === 1 ? $matches->first() : null;
+    }
+
+    protected function validRecipientId(mixed $id, int $userId): ?int
+    {
+        if (! is_numeric($id) || (int) $id === $userId) {
+            return null;
+        }
+
+        // SoftDeletes keeps deleted members out of this query.
+        return User::whereKey((int) $id)->exists() ? (int) $id : null;
+    }
+
+    protected function validEnclosures(mixed $urls): array
+    {
+        return collect(is_array($urls) ? $urls : [])
+            ->filter(fn ($url) => is_string($url) && Validator::make(['url' => $url], ['url' => ['url', 'max:2048']])->passes())
+            ->take(5)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The localStorage suffixes the compose page used for this letter,
+     * which the next page load clears once the server has the text.
+     */
+    protected function localDraftKeys(Message $message, bool $wasNew): array
+    {
+        return $wasNew ? ['new', (string) $message->id] : [(string) $message->id];
     }
 }

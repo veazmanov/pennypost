@@ -18,6 +18,15 @@
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    @if (session('clearLocalDraft') && auth()->check())
+        {{-- The server has the letter now, so the compose page's local backup can go. --}}
+        <script>
+            try {
+                @js(session('clearLocalDraft')).forEach((suffix) => localStorage.removeItem(@js('pp-letter:'.auth()->id().':') + suffix));
+            } catch (e) {}
+        </script>
+    @endif
 </head>
 
 <body class="font-sans antialiased" style="background: var(--paper);">
