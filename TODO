@@ -1,10 +1,18 @@
 Defo
 
+- [ ] new users not getting login emails — follow up (2026-10-28)
+  - [ ] check DMARC record is live: `! dig +short TXT _dmarc.vjbe.net` should print `v=DMARC1; p=none; rua=mailto:victor@vjbe.net`
+  - [ ] send a login link to a Gmail and an Outlook address; check headers show SPF, DKIM and DMARC all pass and it lands in the inbox
+  - [ ] check prod mail log (`storage/logs/mail-*.log`) against which new users actually click their link
+  - [ ] ask the 3 unverified signups from 2026-10-28 (svy…@outlook.com etc.) to check spam, or resend them a link
+  - [ ] read the DMARC reports for a few weeks; if everything passes, tighten to `p=quarantine`
+  - [ ] consider a transactional provider (Postmark / Resend) for delivery visibility and reputation
 - [x] use ET book font
 - [ ] deliver 3 times a week (Mon, Wed, Fri)
 - [ ] add notification when someone has a penny post / read or unread messages
+- [ ] enable emails whenever someone gets sent a letter - and put the letters in the emails themselves (as plain text)
 - [ ] create simple deploy script that runs ON the server (instead of retyping those commands)
-- [ ] allow users to download entire correspondence in PDF format
+- [ ] allow users to download entire correspondence in P)DF format
 - [x] change font to EB Garamond of the main letter writing
 - [ ] user can change email address
 - [ ] add dedicated user page
