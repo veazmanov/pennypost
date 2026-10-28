@@ -1,0 +1,36 @@
+<?php
+
+namespace App\Listeners;
+
+use Illuminate\Mail\Events\MessageSent;
+use Illuminate\Support\Facades\Log;
+use Symfony\Component\Mime\Address;
+
+class LogSentMail
+{
+    /**
+     * SMTP doesn't put anything in the Fastmail Sent folder, so this log is
+     * the only record that an email left the app. Deliberately leaves out
+     * the body and the SMTP transcript: both contain the login link.
+     */
+    public function handle(MessageSent $event): void
+    {
+        $message = $event->message;
+
+        Log::channel('mail')->info('sent', [
+            'to' => array_map(fn (Address $address) => $address->getAddress(), $message->getTo()),
+            'subject' => $message->getSubject(),
+            'message_id' => $event->sent->getMessageId(),
+            'smtp_queue_id' => $this->queueId($event->sent->getDebug()),
+        ]);
+    }
+
+    /**
+     * Pull the server's "250 ... queued as XXXX" reply out of the transcript,
+     * which is what Fastmail support needs to trace a message.
+     */
+    protected function queueId(string $debug): ?string
+    {
+        return preg_match('/< 250 .*queued as (\S+)/i', $debug, $matches) ? $matches[1] : null;
+    }
+}
