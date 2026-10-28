@@ -20,17 +20,9 @@ class LogSentMail
         Log::channel('mail')->info('sent', [
             'to' => array_map(fn (Address $address) => $address->getAddress(), $message->getTo()),
             'subject' => $message->getSubject(),
-            'message_id' => $event->sent->getMessageId(),
-            'smtp_queue_id' => $this->queueId($event->sent->getDebug()),
+            // Over SMTP this is the server's "queued as" ID, which is what
+            // Fastmail support needs to trace a message.
+            'smtp_queue_id' => $event->sent->getMessageId(),
         ]);
-    }
-
-    /**
-     * Pull the server's "250 ... queued as XXXX" reply out of the transcript,
-     * which is what Fastmail support needs to trace a message.
-     */
-    protected function queueId(string $debug): ?string
-    {
-        return preg_match('/< 250 .*queued as (\S+)/i', $debug, $matches) ? $matches[1] : null;
     }
 }

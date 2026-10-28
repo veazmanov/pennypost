@@ -12,6 +12,7 @@ test('every email the app sends is logged without its body', function () {
         return $message === 'sent'
             && $context['to'] === ['reader@example.com']
             && $context['subject'] === 'Your Penny Post login link'
+            && array_key_exists('smtp_queue_id', $context)
             && ! str_contains(json_encode($context), 'signature=');
     });
 
