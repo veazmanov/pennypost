@@ -79,16 +79,23 @@ protected function sendLink(Request $request, SendLoginLink $sendLoginLink, stri
         ]);
     }
 
+    // Per-recipient throttle for addresses that have never clicked a link,
+    // so the form can't be used to flood a stranger's inbox. Say so plainly
+    // when it trips: pretending we sent a link leaves a new user waiting
+    // for an email that is never coming.
     $isUnverified = $user === null || $user->email_verified_at === null;
+    $emailThrottleKey = 'unverified-login-link:'.$email;
 
-    if ($isUnverified) {
-        $emailThrottleKey = 'unverified-login-link:'.$email;
+    if ($isUnverified && RateLimiter::tooManyAttempts($emailThrottleKey, 3)) {
+        $minutes = max(1, (int) ceil(RateLimiter::availableIn($emailThrottleKey) / 60));
 
-        if (RateLimiter::tooManyAttempts($emailThrottleKey, 1)) {
-            return redirect()->route('login')->with('status', 'login-link-sent');
-        }
-
-        RateLimiter::hit($emailThrottleKey, 300);
+        throw ValidationException::withMessages([
+            'email' => trans_choice(
+                "We've already sent a few links to this address — please check your spam or junk folder. You can request another in :minutes minute.|We've already sent a few links to this address — please check your spam or junk folder. You can request another in :minutes minutes.",
+                $minutes,
+                ['minutes' => $minutes],
+            ),
+        ]);
     }
 
     if ($user === null) {
@@ -111,6 +118,12 @@ protected function sendLink(Request $request, SendLoginLink $sendLoginLink, stri
     }
 
     $sendLoginLink($user);
+
+    // Only count links that actually went out, so a failed send doesn't
+    // lock the user out of retrying.
+    if ($isUnverified) {
+        RateLimiter::hit($emailThrottleKey, 900);
+    }
 
     return redirect()->route('login')->with('status', 'login-link-sent');
 }
