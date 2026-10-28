@@ -100,19 +100,29 @@ test('an ambiguous typed name is not resolved', function () {
     expect($draft->body)->toBe('Which Sam?');
 });
 
-test('a typed name never resolves to a deleted member or yourself', function () {
-    $sender = User::factory()->create(['name' => 'Me Myself']);
+test('a typed name never resolves to a deleted member', function () {
+    $sender = User::factory()->create();
     User::factory()->create(['name' => 'Gone Person'])->delete();
 
-    foreach (['Gone Person', 'Me Myself'] as $name) {
-        $this->actingAs($sender)->post('/messages', [
-            'intent' => 'send',
-            'recipient_name' => $name,
-            'body' => 'Hello?',
-        ])->assertSessionHas('status', 'send-failed');
-    }
+    $this->actingAs($sender)->post('/messages', [
+        'intent' => 'send',
+        'recipient_name' => 'Gone Person',
+        'body' => 'Hello?',
+    ])->assertSessionHas('status', 'send-failed');
 
     expect(Message::where('is_draft', false)->count())->toBe(0);
+});
+
+test('a typed name can resolve to yourself', function () {
+    $sender = User::factory()->create(['name' => 'Me Myself']);
+
+    $this->actingAs($sender)->post('/messages', [
+        'intent' => 'send',
+        'recipient_name' => 'me myself',
+        'body' => 'Note to self.',
+    ])->assertRedirect(route('correspondence.show', $sender));
+
+    expect(Message::sole()->recipient_id)->toBe($sender->id);
 });
 
 // --- Draft saves never fail over the recipient ----------------------------------------
@@ -160,7 +170,7 @@ test('a draft save to a deleted recipient keeps the body and drops the recipient
     expect($draft->recipient_id)->toBeNull();
 });
 
-test('a draft addressed to yourself is still saved, with an error on the recipient', function () {
+test('a draft addressed to yourself keeps you as the recipient', function () {
     $sender = User::factory()->create();
 
     $response = $this->actingAs($sender)->post('/messages', [
@@ -169,8 +179,10 @@ test('a draft addressed to yourself is still saved, with an error on the recipie
         'body' => 'Note to self.',
     ]);
 
-    $response->assertSessionHasErrors('recipient_id');
+    $response->assertSessionHasNoErrors();
+    $response->assertSessionMissing('recipientWarning');
     expect(Message::sole()->body)->toBe('Note to self.');
+    expect(Message::sole()->recipient_id)->toBe($sender->id);
 });
 
 // --- Clearing the browser's local copy ------------------------------------------------
@@ -306,7 +318,7 @@ test('autosave updates an existing draft and is lenient about half-finished fiel
     expect($draft->enclosures)->toBe(['https://example.com/ok']);
 });
 
-test('autosave resolves a typed name and drops yourself or a deleted member', function () {
+test('autosave resolves a typed name, keeps yourself and drops a deleted member', function () {
     $sender = User::factory()->create();
     $recipient = User::factory()->create(['name' => 'Ada Lovelace']);
     $gone = User::factory()->create();
@@ -318,12 +330,15 @@ test('autosave resolves a typed name and drops yourself or a deleted member', fu
     ])->assertOk();
     expect($draft->fresh()->recipient_id)->toBe($recipient->id);
 
-    foreach ([$sender->id, $gone->id] as $id) {
-        $this->actingAs($sender)->putJson(route('messages.autosave.update', $draft), [
-            'body' => 'hi', 'recipient_id' => $id,
-        ])->assertOk();
-        expect($draft->fresh()->recipient_id)->toBeNull();
-    }
+    $this->actingAs($sender)->putJson(route('messages.autosave.update', $draft), [
+        'body' => 'hi', 'recipient_id' => $sender->id,
+    ])->assertOk();
+    expect($draft->fresh()->recipient_id)->toBe($sender->id);
+
+    $this->actingAs($sender)->putJson(route('messages.autosave.update', $draft), [
+        'body' => 'hi', 'recipient_id' => $gone->id,
+    ])->assertOk();
+    expect($draft->fresh()->recipient_id)->toBeNull();
 });
 
 test('autosave never touches someone elses draft or a sealed letter', function () {

@@ -24,15 +24,48 @@ test('a user can compose a message to another user', function () {
     expect(Message::first()->delivered_at)->toBeNull();
 });
 
-test('a user cannot send a message to themselves', function () {
-    $sender = User::factory()->create();
+test('a user can send a letter to themselves, and it arrives on post day like any other', function () {
+    $user = User::factory()->create(['name' => 'Ada Lovelace']);
 
-    $response = $this->actingAs($sender)->post('/messages', [
-        'recipient_id' => $sender->id,
+    $response = $this->actingAs($user)->post('/messages', [
+        'intent' => 'send',
+        'recipient_id' => $user->id,
         'body' => 'Talking to myself.',
     ]);
 
-    $response->assertSessionHasErrors('recipient_id');
+    $response->assertSessionHasNoErrors();
+    $response->assertRedirect(route('correspondence.show', $user));
+
+    $letter = Message::sole();
+    expect($letter->sender_id)->toBe($user->id);
+    expect($letter->recipient_id)->toBe($user->id);
+    expect($letter->is_draft)->toBeFalse();
+    expect($letter->scheduled_for->equalTo(Message::nextBatchFor($letter->sent_at)))->toBeTrue();
+    expect($letter->delivered_at)->toBeNull();
+
+    $this->travelTo($letter->scheduled_for);
+    $this->artisan('messages:deliver')->assertSuccessful();
+    expect($letter->fresh()->isDelivered())->toBeTrue();
+
+    $this->actingAs($user)->get(route('correspondence.show', $user))
+        ->assertOk()
+        ->assertSee('Talking to myself.');
+
+    // The thread with yourself is one tile, not one for each direction.
+    $index = $this->actingAs($user)->get(route('correspondence.index'))
+        ->assertOk()
+        ->assertSeeTextInOrder(['Ada Lovelace', '1 letter']);
+    expect(substr_count($index->getContent(), 'href="'.route('correspondence.show', $user).'"'))->toBe(1);
+});
+
+test('user search includes yourself so you can address a letter to yourself', function () {
+    $user = User::factory()->create(['name' => 'Ada Lovelace']);
+    User::factory()->create(['name' => 'Ada Byron']);
+
+    $this->actingAs($user)->getJson(route('users.search', ['q' => 'Ada']))
+        ->assertOk()
+        ->assertJsonCount(2)
+        ->assertJsonFragment(['id' => $user->id, 'name' => 'Ada Lovelace']);
 });
 
 test('a message body is required and capped at 20000 characters', function () {

@@ -72,9 +72,6 @@ class MessageController extends Controller
     {
         $userId = $request->user()->id;
 
-        abort_if($person->id === $userId, 404);
-
-
         $letters = Message::query()
             ->visibleTo($userId)
             ->between($userId, $person)
@@ -202,10 +199,10 @@ class MessageController extends Controller
         // meant that person — as long as the name is unambiguous.
         $typedName = trim((string) $request->input('recipient_name', ''));
         if (! $request->filled('recipient_id') && $typedName !== '') {
-            $request->merge(['recipient_id' => $this->resolveRecipientByName($typedName, $userId)?->id]);
+            $request->merge(['recipient_id' => $this->resolveRecipientByName($typedName)?->id]);
         }
 
-        $recipientId = $this->validRecipientId($request->input('recipient_id'), $userId);
+        $recipientId = $this->validRecipientId($request->input('recipient_id'));
 
         $enclosureRules = [
             'enclosures' => ['nullable', 'array', 'max:5'],
@@ -233,15 +230,10 @@ class MessageController extends Controller
 
             $askedFor = $request->filled('recipient_id') || $typedName !== '';
             if ($recipientId === null && $askedFor) {
-                $redirect->withInput(['recipient_name' => $typedName]);
-
-                if ((string) $request->input('recipient_id') === (string) $userId) {
-                    $redirect->withErrors(['recipient_id' => __("You can't send a message to yourself.")]);
-                } else {
-                    $redirect->with('recipientWarning', $typedName !== ''
+                $redirect->withInput(['recipient_name' => $typedName])
+                    ->with('recipientWarning', $typedName !== ''
                         ? __("We couldn't find ':name' — pick them from the suggestions.", ['name' => $typedName])
                         : __($notPennyPostMember));
-                }
             }
 
             return $redirect;
@@ -252,7 +244,6 @@ class MessageController extends Controller
                 'required',
                 'integer',
                 Rule::exists('users', 'id')->whereNull('deleted_at'),
-                Rule::notIn([$userId]),
             ],
             'body' => ['required', 'string', 'max:'.config('pennypost.max_letter_length')],
             ...$enclosureRules,
@@ -261,7 +252,6 @@ class MessageController extends Controller
                 ? __("We couldn't find ':name' — pick them from the suggestions.", ['name' => $typedName])
                 : $notPennyPostMember,
             'recipient_id.exists' => $notPennyPostMember,
-            'recipient_id.not_in' => "You can't send a message to yourself.", // TODO: rethink this - you can send messages to yourself in WhatsApp, why not here?
             'body.max' => __('You have run out of ink.'),
             ...$enclosureMessages,
         ]);
@@ -331,13 +321,13 @@ class MessageController extends Controller
         $recipientId = $request->input('recipient_id');
         $typedName = trim((string) ($validated['recipient_name'] ?? ''));
         if (blank($recipientId) && $typedName !== '') {
-            $recipientId = $this->resolveRecipientByName($typedName, $userId)?->id;
+            $recipientId = $this->resolveRecipientByName($typedName)?->id;
         }
 
         $this->storeDraft(
             $message,
             $userId,
-            $this->validRecipientId($recipientId, $userId),
+            $this->validRecipientId($recipientId),
             $body,
             $this->validEnclosures($validated['enclosures'] ?? []),
         );
@@ -366,14 +356,13 @@ class MessageController extends Controller
     }
 
     /**
-     * An active, onboarded member other than yourself whose name matches
+     * An active, onboarded member (yourself included) whose name matches
      * exactly (ignoring case and surrounding spaces). Names aren't unique,
      * so if more than one person matches we don't guess.
      */
-    protected function resolveRecipientByName(string $name, int $userId): ?User
+    protected function resolveRecipientByName(string $name): ?User
     {
         $matches = User::query()
-            ->whereKeyNot($userId)
             ->whereNotNull('name')
             ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($name))])
             ->limit(2)
@@ -382,9 +371,9 @@ class MessageController extends Controller
         return $matches->count() === 1 ? $matches->first() : null;
     }
 
-    protected function validRecipientId(mixed $id, int $userId): ?int
+    protected function validRecipientId(mixed $id): ?int
     {
-        if (! is_numeric($id) || (int) $id === $userId) {
+        if (! is_numeric($id)) {
             return null;
         }
 
