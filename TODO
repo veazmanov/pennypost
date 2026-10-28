@@ -31,6 +31,8 @@ Defo
 - [ ] create loading state for button when I type the email
 - [ ] custom fonts.
 - [ ] make write full screen
+- [ ] add a word counter to the plain text letter input
+- [ ] make the letter input take up the full page by default, and don't let the user resize it (no drag handle)
 - [ ] lines should go under /create
 - [ ] make sure names are unique.
 - [ ] let people opt out of the public directory - but still be reachable (in that case I need to introduce usernames?)
