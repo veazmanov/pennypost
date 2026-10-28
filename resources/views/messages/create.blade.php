@@ -280,6 +280,9 @@
             </x-modal>
 
             @if ($letter->exists && $letter->is_draft)
+                <div class="mt-4 flex justify-end">
+                    <x-download-links :message="$letter" />
+                </div>
                 <form method="POST" action="{{ route('messages.destroy', $letter) }}" class="mt-4 text-right"
                     @submit="if (!confirm(@js(__('Delete this draft for good?')))) { $event.preventDefault(); return; } submitting = true">
                     @csrf

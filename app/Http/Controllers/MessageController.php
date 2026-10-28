@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Message;
 use App\Models\User;
+use App\Support\LetterExport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 class MessageController extends Controller
 {
@@ -165,6 +167,26 @@ class MessageController extends Controller
         $message->delete();
 
         return redirect()->route('messages.drafts')->with('status', 'draft-deleted');
+    }
+
+    /**
+     * A letter or draft as a PDF or TXT file. Sealed letters follow the
+     * same rule as the thread page (visibleTo), so nobody can download a
+     * letter before post day that they couldn't read yet; drafts are the
+     * sender's alone.
+     */
+    public function download(Request $request, Message $message, string $format): Response
+    {
+        $userId = $request->user()->id;
+
+        abort_unless(
+            $message->is_draft
+                ? $message->sender_id === $userId
+                : Message::visibleTo($userId)->whereKey($message->id)->exists(),
+            404
+        );
+
+        return (new LetterExport($message))->download($format);
     }
 
 

@@ -44,6 +44,8 @@
                                 {{ __('Delete') }}
                             </button>
                         </form>
+
+                        <x-download-links :message="$draft" class="ml-auto" />
                     </div>
                 </div>
             @empty

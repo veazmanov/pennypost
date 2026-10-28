@@ -111,7 +111,10 @@
                             <div id="letter-{{ $letter->id }}" class="pp-letter-entry p-8 sm:p-12"
                                 style="scroll-margin-top: 24px;">
 
-                                <div class="text-right">
+                                <div class="flex items-baseline justify-end gap-4">
+                                    @if ($letter->isDelivered())
+                                        <x-download-links :message="$letter" class="mr-auto" />
+                                    @endif
                                     <p class="pp-serif" style="color: var(--ink-soft);">
                                         {{ $letter->sent_at->format('j F Y') }}
                                     </p>

@@ -54,6 +54,9 @@ Route::middleware('auth')->group(function () {
     });
     Route::put('/messages/{message}', [MessageController::class, 'update'])->name('messages.update');
     Route::delete('/messages/{message}', [MessageController::class, 'destroy'])->name('messages.destroy');
+    Route::get('/messages/{message}/download/{format}', [MessageController::class, 'download'])
+        ->whereIn('format', ['pdf', 'txt'])
+        ->name('messages.download');
 
     Route::get('/users/search', UserSearchController::class)->name('users.search');
     Route::get('/directory', [UserDirectoryController::class, 'index'])->name('directory.index');
