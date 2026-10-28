@@ -28,7 +28,7 @@
                 <div class="space-y-3">
                     @foreach ($correspondences as $thread)
                         <a href="{{ route('correspondence.show', $thread->person) }}"
-                            class="pp-paper-card p-4 sm:p-6 flex items-center justify-between gap-4 hover:opacity-90 transition-opacity">
+                            class="pp-paper-card p-4 sm:p-6 flex items-center justify-between gap-4">
                             <p class="pp-serif font-medium uppercase" style="color: var(--ink);">
                                 {{ $thread->person->name }}
                             </p>

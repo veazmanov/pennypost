@@ -1,3 +1,30 @@
+/* ET Book, Tufte's Bembo revival — self-hosted, same cut as plainoldtext.
+   It only has regular and bold, so font-medium renders regular and
+   font-semibold renders bold. */
+@font-face {
+    font-family: "et-book";
+    src: url("../fonts/et-book/et-book-roman-line-figures.woff") format("woff");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "et-book";
+    src: url("../fonts/et-book/et-book-display-italic-old-style-figures.woff") format("woff");
+    font-weight: normal;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "et-book";
+    src: url("../fonts/et-book/et-book-bold-line-figures.woff") format("woff");
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
 @tailwind base;
 
 @tailwind components;
@@ -30,6 +57,16 @@
         /* Accent reuses ink-soft rather than a fifth warm shade — a link
        inside a letter doesn't need its own hue, just its own weight. */
         --letter-accent: var(--letter-ink-soft);
+
+        /* A darker edge for the paper, used for the clipping-style border and shadow. */
+        --letter-paper-edge: #b9a77f;
+        --shadow-rgb: 0, 0, 0;
+
+        --serif: et-book, Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    }
+
+    h1, h2, h3 {
+        text-wrap: balance;
     }
     body {
         background: var(--paper);
@@ -47,7 +84,9 @@
     }
 
     .pp-serif {
-        font-family: "Fraunces", ui-serif, Georgia, serif;
+        font-family: var(--serif);
+        font-kerning: normal;
+        text-rendering: optimizeLegibility;
     }
 
 
@@ -84,6 +123,15 @@
 .pp-enclosure-input:focus {
     border-color: var(--accent);
 }
+
+    /* Nav links set in small caps, like a printed running head. */
+    .pp-nav-caps {
+        font-family: var(--serif);
+        font-size: 1.05rem;
+        font-variant: small-caps;
+        text-transform: lowercase;
+        letter-spacing: 0.1em;
+    }
 
     .pp-mono {
         font-family: "Space Mono", ui-monospace, monospace;
@@ -182,13 +230,15 @@
         min-height: 70vh; /* new */
     }
 
-     /* Letters themselves get EB Garamond instead of the site-wide Fraunces —
-      *        scoped to .pp-letter-plain so nothing outside the letter surface
-      *               (nav, headers, cards, settings) is affected. */
+    /* Letter bodies hyphenate like a printed page, so long words don't
+       leave ragged gaps. */
     .pp-letter-plain .pp-serif {
-        font-family: "EB Garamond", ui-serif, Georgia, serif;
-     }
+        -webkit-hyphens: auto;
+        hyphens: auto;
+    }
 
+    /* Paper cards are clippings: a darker paper edge and a soft drop
+       shadow, lifting a little when they are links. */
     .pp-paper-card {
         --paper: var(--letter-paper);
         --paper-card: var(--letter-paper-card);
@@ -200,6 +250,19 @@
 
         background: var(--letter-paper-card);
         position: relative;
+        border: 1px solid var(--letter-paper-edge);
+        box-shadow:
+            0 1px 0 rgba(var(--shadow-rgb), 0.05),
+            0 10px 24px -18px rgba(var(--shadow-rgb), 0.6);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    a.pp-paper-card:hover,
+    a.pp-paper-card:focus-visible {
+        transform: translateY(-3px);
+        box-shadow:
+            0 1px 0 rgba(var(--shadow-rgb), 0.05),
+            0 18px 30px -18px rgba(var(--shadow-rgb), 0.7);
     }
 
     .pp-letter-entry + .pp-letter-entry {
@@ -680,7 +743,7 @@
     }
 
     .pp-hero-tagline {
-        font-family: "EB Garamond", ui-serif, Georgia, serif;
+        font-family: var(--serif);
         font-style: italic;
         font-size: 15px;
         letter-spacing: 0.02em;

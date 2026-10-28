@@ -1,12 +1,24 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-3-1VTwNZ.css",
+    "file": "assets/app-BOnMy-Lm.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
     "names": [
       "app.css"
     ]
+  },
+  "resources/fonts/et-book/et-book-bold-line-figures.woff": {
+    "file": "assets/et-book-bold-line-figures-BFJr2_zv.woff",
+    "src": "resources/fonts/et-book/et-book-bold-line-figures.woff"
+  },
+  "resources/fonts/et-book/et-book-display-italic-old-style-figures.woff": {
+    "file": "assets/et-book-display-italic-old-style-figures-CoeRJAe8.woff",
+    "src": "resources/fonts/et-book/et-book-display-italic-old-style-figures.woff"
+  },
+  "resources/fonts/et-book/et-book-roman-line-figures.woff": {
+    "file": "assets/et-book-roman-line-figures-CaA40oOf.woff",
+    "src": "resources/fonts/et-book/et-book-roman-line-figures.woff"
   },
   "resources/js/app.js": {
     "file": "assets/app-BIaWXUqY.js",

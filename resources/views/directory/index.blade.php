@@ -19,7 +19,7 @@
 
             @forelse ($people as $person)
                 <a href="{{ route('correspondence.show', $person) }}"
-                    class="pp-paper-card p-4 sm:p-6 flex items-center justify-between gap-4 flex-wrap hover:opacity-90 transition-opacity"
+                    class="pp-paper-card p-4 sm:p-6 flex items-center justify-between gap-4 flex-wrap"
                     style="text-decoration: none;">
                     <div>
                         <p class="pp-serif font-medium uppercase" style="color: var(--ink);">{{ $person->name }}</p>
