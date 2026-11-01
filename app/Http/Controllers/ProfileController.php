@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Actions\SendAccountDeletionLink;
 use App\Http\Requests\ProfileUpdateRequest;
-use App\Models\Message;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,19 +17,8 @@ class ProfileController extends Controller
 {
     public function edit(Request $request): View
     {
-        $nextCatchableBatch = Message::nextBatchFor();
-        $nextPickup = Message::cutoffFor($nextCatchableBatch);
-        $nextDelivery = Message::nextDeliveryAt();
-
         return view('profile.edit', [
             'user' => $request->user(),
-            'nextBatch' => $nextDelivery,
-            'nextPickup' => $nextPickup,
-            // The pickup feeds a later delivery than the one counting down,
-            // so name both: where a letter sealed now ends up, and which
-            // letters the imminent delivery is actually carrying.
-            'nextCatchableBatch' => $nextCatchableBatch,
-            'nextBatchCutoff' => Message::cutoffFor($nextDelivery),
         ]);
     }
 

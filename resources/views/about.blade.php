@@ -45,7 +45,7 @@
                 </p>
                 <p class="pp-lede" style="margin-top: 28px; margin-bottom: 0;">
                     {{ $schedule }}
-                    {{ __('Delivery happens at a fixed moment in GMT — see the clock in your Settings page for exactly when that lands in your own time zone.') }}
+                    {{ __('Delivery happens at a fixed moment in GMT, and every letter shows its arrival time in your own time zone.') }}
                 </p>
                 <p class="pp-mono text-sm mt-7" style="color: var(--ink-soft);">
                     {{ trans_choice(':count letter delivered|:count letters delivered', $deliveredCount, ['count' => number_format($deliveredCount)]) }}
@@ -122,7 +122,7 @@
                     <div>
                         <h3 class="pp-stamp-title">{{ __('What time do I get my mail?') }}</h3>
                         <p class="pp-stamp-body">
-                            {{ __('Messages are delivered on :days, at a fixed moment in GMT. Because GMT doesn\'t observe British Summer Time, that moment lands at a different local London time depending on the season. We\'ve put a live GMT clock and countdown on the Settings page so you can see exactly when your letters will land, wherever you are.', ['days' => \App\Models\Message::deliveryDayNames()]) }}
+                            {{ __('Messages are delivered on :days, at a fixed moment in GMT. Because GMT doesn\'t observe British Summer Time, that moment lands at a different local London time depending on the season. While a letter is in the post, it shows when it will arrive, in your local time.', ['days' => \App\Models\Message::deliveryDayNames()]) }}
                         </p>
                     </div>
                 </div>

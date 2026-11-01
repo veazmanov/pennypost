@@ -205,6 +205,15 @@ test('an undelivered letter shows when it arrives', function () {
         ->assertSee('Friday 14 August, 12:00 GMT');
 });
 
+test('the compose page says when a letter sealed now will arrive', function () {
+    freezeTimeAt('2026-08-10 09:00:00'); // a Monday
+
+    $this->actingAs(User::factory()->create())->get(route('messages.create'))
+        ->assertOk()
+        ->assertSee('Seal now and it arrives')
+        ->assertSee('Friday 14 August, 12:00 GMT');
+});
+
 
 // --- Full end-to-end lifecycle ---------------------------------------------------
 

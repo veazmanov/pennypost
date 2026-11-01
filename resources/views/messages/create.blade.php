@@ -192,9 +192,19 @@
             </div>
 
             <div class="pp-compose-meta">
-                <p class="pp-mono text-xs" style="color: var(--ink-soft); margin: 0;">
-                    {{ __('Sending is final — letters can\'t be unsent or edited once sealed.') }}
-                </p>
+                <div>
+                    <p class="pp-mono text-xs" style="color: var(--ink-soft); margin: 0;">
+                        {{ __('Sending is final — letters can\'t be unsent or edited once sealed.') }}
+                    </p>
+                    {{-- Formatted in the browser so it shows in the writer's own time zone. --}}
+                    <p class="pp-mono text-xs" style="color: var(--ink-soft); margin: 0;"
+                        x-data="{ arrivesAt: new Date('{{ $nextBatch->toIso8601String() }}') }">
+                        {{ __('Seal now and it arrives') }}
+                        <span x-text="arrivesAt.toLocaleString(undefined, {
+                            weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
+                        })">{{ $nextBatch->utc()->format('l j F, H:i') }} GMT</span>
+                    </p>
+                </div>
                 <p class="pp-mono text-xs" style="margin: 0;" role="status" x-text="saveStatus()"
                     :style="{ color: saveState === 'failed' ? 'var(--error-red)' : 'var(--ink-soft)' }"></p>
             </div>

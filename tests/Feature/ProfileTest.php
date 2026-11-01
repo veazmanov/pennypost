@@ -16,6 +16,13 @@ test('profile page is displayed', function () {
     $response->assertOk();
 });
 
+test('the profile page no longer shows the pickup and delivery card', function () {
+    $this->actingAs(User::factory()->create())->get('/profile')
+        ->assertOk()
+        ->assertDontSee('Pickup and delivery')
+        ->assertDontSee('Next pickup');
+});
+
 test('profile information can be updated', function () {
     $user = User::factory()->create();
 
