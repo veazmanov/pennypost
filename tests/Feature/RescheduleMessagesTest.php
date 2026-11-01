@@ -4,6 +4,8 @@ use App\Models\Message;
 use Carbon\CarbonImmutable;
 
 test('rescheduling moves letters in the post earlier, never later', function () {
+    config(['pennypost.delivery_days' => [CarbonImmutable::MONDAY, CarbonImmutable::THURSDAY]]);
+
     // Sealed Tuesday under the old Friday schedule: promised Friday 16 Oct.
     // The new rule would say Monday 19 Oct, which is later, so it stays.
     $keepsFriday = Message::factory()->create([

@@ -26,13 +26,14 @@ return [
     | Letters are delivered on these days (Carbon day-of-week numbers) at
     | `delivery_time`, UTC. Each delivery day is also the cutoff for the
     | next delivery: a letter sealed before midnight at the start of one
-    | delivery day arrives on the following one. With Monday and Thursday,
-    | seal before Monday (by Sunday night) and it arrives Thursday; seal
-    | before Thursday and it arrives Monday. See Message::nextBatchFor().
+    | delivery day arrives on the following one. With Monday, Wednesday and
+    | Friday, seal before Monday (by Sunday night) and it arrives Wednesday;
+    | seal before Wednesday and it arrives Friday; seal before Friday and it
+    | arrives Monday. See Message::nextBatchFor().
     |
     */
 
-    'delivery_days' => [CarbonInterface::MONDAY, CarbonInterface::THURSDAY],
+    'delivery_days' => [CarbonInterface::MONDAY, CarbonInterface::WEDNESDAY, CarbonInterface::FRIDAY],
 
     'delivery_time' => '12:00',
 

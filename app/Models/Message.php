@@ -115,9 +115,9 @@ class Message extends Model
     /**
      * Which delivery a letter sealed at $sentAt goes out in: the first
      * delivery whose cutoff it beats. Each delivery day is the cutoff for
-     * the next delivery, so with Monday and Thursday a letter sealed before
-     * Monday (by Sunday night) arrives Thursday, and one sealed before
-     * Thursday arrives Monday.
+     * the next delivery, so with Monday, Wednesday and Friday a letter sealed
+     * before Monday (by Sunday night) arrives Wednesday, one sealed before
+     * Wednesday arrives Friday, and one sealed before Friday arrives Monday.
      */
     public static function nextBatchFor(?CarbonInterface $sentAt = null): CarbonImmutable
     {
@@ -172,8 +172,9 @@ class Message extends Model
 
     /**
      * The schedule in words, built from config — e.g. "Letters are
-     * delivered on Mondays and Thursdays. Seal yours before Monday and it
-     * arrives on Thursday; seal it before Thursday and it arrives on Monday."
+     * delivered on Mondays, Wednesdays and Fridays. Seal yours before Monday
+     * and it arrives on Wednesday; seal it before Wednesday and it arrives
+     * on Friday; seal it before Friday and it arrives on Monday."
      */
     public static function scheduleDescription(): string
     {
