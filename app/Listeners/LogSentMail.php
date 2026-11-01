@@ -15,14 +15,21 @@ class LogSentMail
      */
     public function handle(MessageSent $event): void
     {
-        $message = $event->message;
+        // This is an audit log: if it can't be written (e.g. the scheduler
+        // created today's file as another user), report it and move on.
+        // It must never break the request that sent the email.
+        try {
+            $message = $event->message;
 
-        Log::channel('mail')->info('sent', [
-            'to' => array_map(fn (Address $address) => $address->getAddress(), $message->getTo()),
-            'subject' => $message->getSubject(),
-            // Over SMTP this is the server's "queued as" ID, which is what
-            // Fastmail support needs to trace a message.
-            'smtp_queue_id' => $event->sent->getMessageId(),
-        ]);
+            Log::channel('mail')->info('sent', [
+                'to' => array_map(fn (Address $address) => $address->getAddress(), $message->getTo()),
+                'subject' => $message->getSubject(),
+                // Over SMTP this is the server's "queued as" ID, which is what
+                // Fastmail support needs to trace a message.
+                'smtp_queue_id' => $event->sent->getMessageId(),
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 }
