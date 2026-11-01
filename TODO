@@ -1,16 +1,36 @@
 Defo
 
-- [ ] new users not getting login emails — follow up (2026-10-28)
-  - [ ] check DMARC record is live: `! dig +short TXT _dmarc.vjbe.net` should print `v=DMARC1; p=none; rua=mailto:victor@vjbe.net`
+- [ ] DMARC on vjbe.net (2026-10-28 follow-up — new users not getting login emails)
+  - [ ] check the record is live: `dig +short TXT _dmarc.vjbe.net` should print `v=DMARC1; p=none; rua=mailto:victor@vjbe.net`
   - [ ] send a login link to a Gmail and an Outlook address; check headers show SPF, DKIM and DMARC all pass and it lands in the inbox
-  - [ ] check prod mail log (`storage/logs/mail-*.log`) against which new users actually click their link
+  - [ ] compare prod mail log (`storage/logs/mail-*.log`) with which new users actually click their link
   - [ ] ask the 3 unverified signups from 2026-10-28 (svy…@outlook.com etc.) to check spam, or resend them a link
   - [ ] read the DMARC reports for a few weeks; if everything passes, tighten to `p=quarantine`
-  - [ ] consider a transactional provider (Postmark / Resend) for delivery visibility and reputation
+
+- [ ] send all Penny Post mail from a dedicated subdomain (reputation isolation from victor@vjbe.net)
+  - [ ] pick the address, e.g. `post@pennypost.vjbe.net`
+  - [ ] add `pennypost.vjbe.net` as a sending domain in Fastmail
+  - [ ] add DNS for the subdomain: SPF (`include:spf.messagingengine.com`), Fastmail's DKIM CNAMEs, and its own `_dmarc.pennypost.vjbe.net` record (start at `p=none`)
+  - [ ] verify with a test send: SPF, DKIM and DMARC pass, and DKIM is aligned to `pennypost.vjbe.net`
+  - [ ] set `MAIL_FROM_ADDRESS` in prod `.env`; change the fallback in `config/mail.php` away from `victor@vjbe.net`
+  - [ ] set Reply-To to `pennypost@vjbe.net` so replies to app mail still reach a human
+  - [ ] keep the weekly DB backup going to `victor@vjbe.net` (only the sender changes)
+  - [ ] send only login links from it for a week or two before adding delivery emails
+  - [ ] if delivery is still flaky after all this: consider a transactional provider (Postmark / Resend)
+
+- [ ] delivery emails — blocked on the two above
+  - [ ] one email per recipient per delivery, with the letters in plain text (doubles as an off-server copy of every delivered letter)
+  - [ ] `notify_on_delivery` setting, default on, toggle in Settings
+  - [ ] signed one-click unsubscribe link + `List-Unsubscribe` header
+  - [ ] "replies to this email aren't delivered — write back on Penny Post" footer
+  - [ ] send inline from `messages:deliver` (no queue worker on the server)
+  - [ ] update privacy page: delivered letters are also emailed to the recipient
+  - [ ] update About: replace the E2EE "not yet" answer with a plain "no"
+  - [ ] later: email the sender a copy too
+
 - [x] use ET book font
 - [ ] deliver 3 times a week (Mon, Wed, Fri)
 - [ ] add notification when someone has a penny post / read or unread messages
-- [ ] enable emails whenever someone gets sent a letter - and put the letters in the emails themselves (as plain text)
 - [ ] create simple deploy script that runs ON the server (instead of retyping those commands)
 - [ ] allow users to download entire correspondence in P)DF format
 - [x] change font to EB Garamond of the main letter writing
@@ -18,7 +38,6 @@ Defo
 - [ ] add dedicated user page
 - [ ] implement end to end encryption
 - [ ] add explicit github footer link
-- [ ] move my automated email mailer to the subdomain `victor@pennypost.vjbe.net` for reputation isolation.
 - [ ] changing email flow should send a confirmation email.
 - [ ] change to a mail provider that doesn't keep copies in the US?
 - [ ] add save to local storage
