@@ -15,15 +15,8 @@
         <div class="mx-auto" style="max-width: 74rem; padding-inline: clamp(1.5rem, 6vw, 4rem);">
 
 
-        @if ($letters->isNotEmpty() || $drafts->isNotEmpty())
+        @if ($letters->isNotEmpty())
             <div class="md:hidden mb-6 flex gap-2 overflow-x-auto pb-2" style="scrollbar-width: none;">
-                @foreach ($drafts as $draft)
-                    <a href="{{ route('messages.edit', $draft) }}" class="pp-mono text-xs shrink-0"
-                        style="color: var(--ink-soft); border: 1px solid var(--line); border-radius: 999px;
-                               padding: 4px 10px; text-decoration: none; white-space: nowrap;">
-                        {{ __('Edit draft') }} <span class="italic">· {{ __('not sent') }}</span>
-                    </a>
-                @endforeach
                 @foreach ($letters as $letter)
                     <a href="#letter-{{ $letter->id }}" class="pp-mono text-xs shrink-0"
                         style="color: var(--ink-soft); border: 1px solid var(--line); border-radius: 999px;
@@ -36,24 +29,13 @@
 
 
             <div class="flex items-start gap-10">
-                                @if ($letters->isNotEmpty() || $drafts->isNotEmpty())
+                @if ($letters->isNotEmpty())
                     <nav class="hidden md:block shrink-0"
                         style="width: 150px; position: sticky; top: 24px; max-height: calc(100vh - 48px); overflow-y: auto;">
                         <p class="pp-mono text-xs mb-3" style="color: var(--ink-soft); letter-spacing: 0.08em;">
                             {{ __('JUMP TO') }}
                         </p>
                         <ul class="space-y-2">
-                            @foreach ($drafts as $draft)
-                                <li class="pb-2">
-                                    <a href="{{ route('messages.edit', $draft) }}" class="pp-btn pp-btn-ghost">
-                                        {{ __('Edit draft') }}
-                                        <x-icons.pen />
-                                    </a>
-                                    <span class="pp-mono text-xs italic block mt-1" style="color: var(--ink-soft);">
-                                        {{ __('not sent') }}
-                                    </span>
-                                </li>
-                            @endforeach
                             @foreach ($letters as $letter)
                                 <li>
                                     <a href="#letter-{{ $letter->id }}" class="pp-mono text-xs block"
@@ -79,28 +61,6 @@
                     @endif
 
                     <div class="pp-letter-plain">
-                        @foreach ($drafts as $draft)
-                            <a href="{{ route('messages.edit', $draft) }}" id="draft-{{ $draft->id }}"
-                                class="pp-letter-entry p-8 sm:p-12 block"
-                                style="scroll-margin-top: 24px; color: var(--ink-soft); text-decoration: none; cursor: text;"
-                                onmouseover="this.style.color='var(--ink)'"
-                                onmouseout="this.style.color='var(--ink-soft)'">
-                                <p class="pp-serif text-center"
-                                    style="font-size: 1.25rem; line-height: 1.75;">
-                                    <span class="italic">{{ __('To') }}</span>
-                                    <span class="uppercase" style="margin-left: 0.75rem;">{{ $person->name }}</span>
-                                </p>
-
-                                <p class="mt-8 whitespace-pre-wrap pp-serif"
-                                    style="font-size: 1.25rem; line-height: 1.75;">{{ $draft->body }}</p>
-
-                                <p class="mt-8 text-right pp-serif"
-                                    style="font-size: 1.25rem; line-height: 1.75;">
-                                    [{{ auth()->user()->name }}]
-                                </p>
-                            </a>
-                        @endforeach
-
                         @forelse ($letters as $letter)
                             <div id="letter-{{ $letter->id }}" class="pp-letter-entry p-8 sm:p-12"
                                 style="scroll-margin-top: 24px;">
@@ -154,11 +114,9 @@
                                 @endif
                             </div>
                         @empty
-                            @if ($drafts->isEmpty())
                             <div class="p-8 sm:p-12 text-sm" style="color: var(--ink-soft);">
                                 {{ __('Nothing here yet.') }}
                             </div>
-                            @endif
                         @endforelse
                     </div>
                 </div>

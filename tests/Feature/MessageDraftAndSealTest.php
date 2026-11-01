@@ -164,7 +164,7 @@ test('the drafts index only shows the current users own drafts', function () {
     expect($response->viewData('drafts')->pluck('id')->all())->toBe([$mine->id]);
 });
 
-test('the sender sees their sealed letter and their draft in the thread, the recipient sees neither', function () {
+test('the sender sees their sealed letter in the thread but not their draft; the recipient sees neither', function () {
     $user = User::factory()->create();
     $recipient = User::factory()->create();
 
@@ -176,14 +176,27 @@ test('the sender sees their sealed letter and their draft in the thread, the rec
         ->assertDontSee('Sealed')
         ->assertSee('in the post')
         ->assertSee('A real sealed letter.')
-        ->assertSee('not sent')
-        ->assertSee('Still just a draft.')
-        ->assertSee(route('messages.edit', $draft));
+        ->assertDontSee('Still just a draft.')
+        ->assertDontSee('not sent')
+        ->assertDontSee('Edit draft')
+        ->assertDontSee(route('messages.edit', $draft));
 
     $this->actingAs($recipient)->get(route('correspondence.show', $user))
         ->assertOk()
         ->assertDontSee('A real sealed letter.')
         ->assertDontSee('Still just a draft.');
+});
+
+test('a thread with only a draft shows the empty state, not the draft', function () {
+    $user = User::factory()->create();
+    $recipient = User::factory()->create();
+
+    Message::factory()->for($user, 'sender')->for($recipient, 'recipient')->draft()->create(['body' => 'Only a draft so far.']);
+
+    $this->actingAs($user)->get(route('correspondence.show', $recipient))
+        ->assertOk()
+        ->assertSee('Nothing here yet.')
+        ->assertDontSee('Only a draft so far.');
 });
 
 test('an undelivered letter shows when it arrives', function () {
