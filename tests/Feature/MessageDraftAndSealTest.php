@@ -186,6 +186,25 @@ test('the sender sees their sealed letter and their draft in the thread, the rec
         ->assertDontSee('Still just a draft.');
 });
 
+test('an undelivered letter shows when it arrives', function () {
+    freezeTimeAt('2026-08-10 09:00:00'); // a Monday
+
+    $sender = User::factory()->create();
+    $recipient = User::factory()->create();
+
+    $this->actingAs($sender)->post('/messages', [
+        'intent' => 'send',
+        'recipient_id' => $recipient->id,
+        'body' => 'When will this get there?',
+    ]);
+
+    $this->actingAs($sender)->get(route('correspondence.show', $recipient))
+        ->assertOk()
+        ->assertSee('in the post')
+        ->assertSee('Arrives')
+        ->assertSee('Friday 14 August, 12:00 GMT');
+});
+
 
 // --- Full end-to-end lifecycle ---------------------------------------------------
 

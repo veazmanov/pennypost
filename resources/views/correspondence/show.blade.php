@@ -29,9 +29,6 @@
                         style="color: var(--ink-soft); border: 1px solid var(--line); border-radius: 999px;
                                padding: 4px 10px; text-decoration: none; white-space: nowrap;">
                         {{ $letter->sent_at->format('j M') }}
-                        @unless ($letter->isDelivered())
-                            <span class="italic">· {{ __('in the post') }}</span>
-                        @endunless
                     </a>
                 @endforeach
             </div>
@@ -64,9 +61,6 @@
                                         onmouseover="this.style.color='var(--ink)'"
                                         onmouseout="this.style.color='var(--ink-soft)'">
                                         {{ $letter->sent_at->format('jS F') }}
-                                        @unless ($letter->isDelivered())
-                                            <span class="italic block">{{ __('in the post') }}</span>
-                                        @endunless
                                     </a>
                                 </li>
                             @endforeach
@@ -114,6 +108,8 @@
                                 <div class="flex items-baseline justify-end gap-4">
                                     @if ($letter->isDelivered())
                                         <x-download-links :message="$letter" class="mr-auto" />
+                                    @else
+                                        <x-in-the-post :letter="$letter" />
                                     @endif
                                     <p class="pp-serif" style="color: var(--ink-soft);">
                                         {{ $letter->sent_at->format('j F Y') }}
