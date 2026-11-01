@@ -26,6 +26,11 @@ class ProfileController extends Controller
             'user' => $request->user(),
             'nextBatch' => $nextDelivery,
             'nextPickup' => $nextPickup,
+            // The pickup feeds a later delivery than the one counting down,
+            // so name both: where a letter sealed now ends up, and which
+            // letters the imminent delivery is actually carrying.
+            'nextCatchableBatch' => $nextCatchableBatch,
+            'nextBatchCutoff' => Message::cutoffFor($nextDelivery),
         ]);
     }
 

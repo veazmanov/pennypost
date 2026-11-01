@@ -14,56 +14,51 @@
             </div>
 
             <div class="p-4 sm:p-8 pp-letter-card">
+                {{-- Times are formatted in the browser so they show in the viewer's own time zone. --}}
                 <div class="max-w-xl" x-data="{
-                    countdown: '',
-                    deliveryCountdown: '',
-                    pickupAt: new Date('{{ $nextPickup->toIso8601String() }}').getTime(),
-                    deliveryAt: new Date('{{ $nextBatch->toIso8601String() }}').getTime(),
-                    tick() {
-                        const now = new Date();
-
-                        this.countdown = this.formatRemaining(
-                            this.pickupAt - now.getTime(),
-                            '{{ __('Pickup has passed — check back after delivery.') }}'
-                        );
-
-                        this.deliveryCountdown = this.formatRemaining(
-                            this.deliveryAt - now.getTime(),
-                            '{{ __('Delivering now…') }}'
-                        );
+                    now: '',
+                    pickupAt: new Date('{{ $nextPickup->toIso8601String() }}'),
+                    deliveryAt: new Date('{{ $nextBatch->toIso8601String() }}'),
+                    arrivesAt: new Date('{{ $nextCatchableBatch->toIso8601String() }}'),
+                    sealedBefore: new Date('{{ $nextBatchCutoff->toIso8601String() }}'),
+                    time(date) {
+                        return date.toLocaleString(undefined, {
+                            weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+                        });
                     },
-                    formatRemaining(remaining, passedLabel) {
-                        if (remaining <= 0) {
-                            return passedLabel;
-                        }
-
-                        const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
-                        const hours = Math.floor((remaining / (1000 * 60 * 60)) % 24);
-                        const minutes = Math.floor((remaining / (1000 * 60)) % 60);
-                        const seconds = Math.floor((remaining / 1000) % 60);
-
-                        return days + 'd ' + String(hours).padStart(2, '0') + 'h '
-                            + String(minutes).padStart(2, '0') + 'm '
-                            + String(seconds).padStart(2, '0') + 's';
+                    day(date) {
+                        return date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' });
                     },
                     init() {
-                        this.tick();
-                        setInterval(() => this.tick(), 1000);
+                        this.now = this.time(new Date());
+                        setInterval(() => this.now = this.time(new Date()), 1000);
                     }
                 }">
                     <h2 class="text-lg pp-serif font-medium" style="color: var(--ink);">
-                        {{ __('Next pickup') }}
+                        {{ __('Pickup and delivery') }}
                     </h2>
                     <p class="mt-1 text-sm" style="color: var(--ink-soft);">
-                        {{ __('Seal a letter before this to catch the next batch.') }}
+                        {{ __('Your time now:') }} <span x-text="now"></span>
                     </p>
-                    <p class="pp-mono mt-2" style="color: var(--ink); font-size: 1.5rem;" x-text="countdown"></p>
+
+                    <div class="mt-6">
+                        <h3 class="text-sm pp-serif font-medium" style="color: var(--ink);">
+                            {{ __('Next pickup') }}
+                        </h3>
+                        <p class="pp-mono mt-1" style="color: var(--ink); font-size: 1.25rem;" x-text="time(pickupAt)"></p>
+                        <p class="mt-1 text-sm" style="color: var(--ink-soft);">
+                            {{ __('Seal a letter before this and it arrives on') }} <span x-text="day(arrivesAt)"></span>.
+                        </p>
+                    </div>
 
                     <div class="mt-6 pt-6" style="border-top: 1px solid var(--line);">
                         <h3 class="text-sm pp-serif font-medium" style="color: var(--ink);">
                             {{ __('Next delivery') }}
                         </h3>
-                        <p class="pp-mono mt-2" style="color: var(--ink); font-size: 1.5rem;" x-text="deliveryCountdown"></p>
+                        <p class="pp-mono mt-1" style="color: var(--ink); font-size: 1.25rem;" x-text="time(deliveryAt)"></p>
+                        <p class="mt-1 text-sm" style="color: var(--ink-soft);">
+                            {{ __('Already in the post: letters sealed before') }} <span x-text="time(sealedBefore)"></span>.
+                        </p>
                     </div>
                 </div>
             </div>
