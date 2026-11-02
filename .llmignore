@@ -3,7 +3,7 @@ database/database.sqlite
 vendor
 node_modules
 storage
-bootstrap
+bootstrap/cache
 public
 composer.lock
 package-lock.json
@@ -11,3 +11,49 @@ vite.config.js
 tailwind.config.js
 postcss.config.js
 artisan
+# Stock Laravel config — only pennypost.php and mail.php are yours
+config/app.php
+config/auth.php
+config/cache.php
+config/database.php
+config/filesystems.php
+config/logging.php
+config/queue.php
+config/services.php
+config/session.php
+
+# Framework-table migrations
+database/migrations/0001_01_01_000001_create_cache_table.php
+database/migrations/0001_01_01_000002_create_jobs_table.php
+
+# Empty / boilerplate PHP
+app/Providers/AppServiceProvider.php
+app/Http/Controllers/Controller.php
+app/View/Components/
+tests/TestCase.php
+tests/Unit/ExampleTest.php
+tests/Feature/ExampleTest.php
+phpunit.xml
+
+# Breeze components you rarely touch
+resources/views/components/application-logo.blade.php
+resources/views/components/auth-session-status.blade.php
+resources/views/components/danger-button.blade.php
+resources/views/components/dropdown.blade.php
+resources/views/components/dropdown-link.blade.php
+resources/views/components/input-error.blade.php
+resources/views/components/input-label.blade.php
+resources/views/components/modal.blade.php
+resources/views/components/nav-link.blade.php
+resources/views/components/primary-button.blade.php
+resources/views/components/responsive-nav-link.blade.php
+resources/views/components/secondary-button.blade.php
+resources/views/components/text-input.blade.php
+resources/views/components/icons/
+resources/views/vendor/
+
+# Misc
+resources/js/bootstrap.js
+resources/fonts/
+dev.sh
+database/seeders/DemoCorrespondenceSeeder.php

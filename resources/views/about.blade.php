@@ -45,7 +45,7 @@
                 </p>
                 <p class="pp-lede" style="margin-top: 28px; margin-bottom: 0;">
                     {{ $schedule }}
-                    {{ __('Delivery happens at a fixed moment in GMT, and every letter shows its arrival time in your own time zone.') }}
+                    {{ __('Delivery happens at a fixed moment in UTC, and every letter shows its arrival time in your own time zone.') }}
                 </p>
                 <p class="pp-mono text-sm mt-7" style="color: var(--ink-soft);">
                     {{ trans_choice(':count letter delivered|:count letters delivered', $deliveredCount, ['count' => number_format($deliveredCount)]) }}
@@ -122,7 +122,7 @@
                     <div>
                         <h3 class="pp-stamp-title">{{ __('What time do I get my mail?') }}</h3>
                         <p class="pp-stamp-body">
-                            {{ __('Messages are delivered on :days, at a fixed moment in GMT. Because GMT doesn\'t observe British Summer Time, that moment lands at a different local London time depending on the season. While a letter is in the post, it shows when it will arrive, in your local time.', ['days' => \App\Models\Message::deliveryDayNames()]) }}
+                            {{ __('Letters are delivered on :days at :time UTC. While a letter is in the post, it shows exactly when it will arrive, in your own time zone.', ['days' => \App\Models\Message::deliveryDayNames(), 'time' => config('pennypost.delivery_time')]) }}
                         </p>
                     </div>
                 </div>

@@ -215,7 +215,7 @@ test('an undelivered letter shows when it arrives', function () {
         ->assertOk()
         ->assertSee('in the post')
         ->assertSee('Arrives')
-        ->assertSee('Friday 14 August, 12:00 GMT');
+        ->assertSee('Friday 14 August, 12:00 UTC');
 });
 
 test('the compose page says when a letter sealed now will arrive', function () {
@@ -224,7 +224,7 @@ test('the compose page says when a letter sealed now will arrive', function () {
     $this->actingAs(User::factory()->create())->get(route('messages.create'))
         ->assertOk()
         ->assertSee('Seal now and it arrives')
-        ->assertSee('Friday 14 August, 12:00 GMT');
+        ->assertSee('Friday 14 August, 12:00 UTC');
 });
 
 

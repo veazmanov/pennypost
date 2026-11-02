@@ -9,7 +9,7 @@
         arrivesAt: new Date('{{ $letter->scheduled_for->toIso8601String() }}'),
         time(date) {
             return date.toLocaleString(undefined, {
-                weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
+                weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
             });
         },
     }"
@@ -27,6 +27,6 @@
         class="pp-mono text-xs absolute right-0 top-full mt-2 z-10 whitespace-nowrap"
         style="display: none; background: var(--letter-ink); color: var(--letter-paper); border-radius: 2px; padding: 4px 8px;"
         x-show="open">
-        {{ __('Arrives') }} <span x-text="time(arrivesAt)">{{ $letter->scheduled_for->utc()->format('l j F, H:i') }} GMT</span>
+        {{ __('Arrives') }} <span x-text="time(arrivesAt)">{{ $letter->scheduled_for->utc()->format('l j F, H:i') }} UTC</span>
     </span>
 </span>
