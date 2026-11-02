@@ -126,4 +126,5 @@ Done
 - [x] once I have entered and pressed "send" on the email the insert email box should disappear. It is confusing
 
 - [x] have a draft option and a send option, no unsend
+- [ ] allow users to have their own name for people (i.e rename an individual)
 
