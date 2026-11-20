@@ -268,7 +268,7 @@
     }
 
     .pp-letter-entry + .pp-letter-entry {
-        border-top: 1px solid var(--line);
+        border-top: 1px solid var(--page-bg);
     }
 
     .pp-letter-card {
