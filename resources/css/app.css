@@ -883,6 +883,55 @@ body.pp-fullscreen-editor .pp-page-header {
     }
 }
 
+/* Names on the My correspondence sheet: no hover effect, just an
+   underline while pressed (and for keyboard focus). */
+.pp-thread-link {
+    text-decoration: none;
+}
+
+.pp-thread-link:active span:first-child,
+.pp-thread-link:focus-visible span:first-child {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* The cog at the foot of each letter in a thread, and the menu it opens. */
+.pp-letter-menu-btn {
+    display: inline-flex;
+    padding: 6px;
+    margin: -6px;
+    color: var(--ink-soft);
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.pp-letter-menu-btn:hover {
+    color: var(--ink);
+}
+
+.pp-letter-menu {
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+}
+
+.pp-letter-menu a {
+    padding: 14px 8px;
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--line);
+}
+
+.pp-letter-menu a:last-child {
+    border-bottom: none;
+}
+
+.pp-letter-menu a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
 /* Bleeds to the screen edges through .pp-content-wrap's gutter. */
 .pp-compose-actions {
     position: sticky;

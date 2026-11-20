@@ -1,6 +1,6 @@
 Defo
 
-- [ ] on mobile the send menu at the top is clunky AF
+- [x] on mobile the send menu at the top is clunky AF
 - [ ] users should be able to share where they are writing from
 - [ ] DMARC on vjbe.net (2026-10-28 follow-up — new users not getting login emails)
   - [ ] check the record is live: `dig +short TXT _dmarc.vjbe.net` should print `v=DMARC1; p=none; rua=mailto:victor@vjbe.net`
@@ -36,40 +36,40 @@ Defo
 - [ ] create simple deploy script that runs ON the server (instead of retyping those commands)
 - [ ] allow users to download entire correspondence in P)DF format
 - [x] change font to EB Garamond of the main letter writing
-- [ ] user can change email address
-- [ ] add dedicated user page
+- [x] user can change email address
+- [x] add dedicated user page
 - [ ] implement end to end encryption
-- [ ] add explicit github footer link
+- [x] add explicit github footer link
 - [ ] changing email flow should send a confirmation email.
 - [ ] change to a mail provider that doesn't keep copies in the US?
-- [ ] add save to local storage
+- [x] add save to local storage
 - [ ] mail should go out on wednesdays if it arrives on fridays
 - [ ] in the settings add a toggle to make the letters black on white (full dark mode)
 - [ ] add "circulars" feature - a group chat (mandatory name, messages get sent to everyone in the group by default - new users can see all previous messages)
 - [ ] add italics / underline / some form of emphasis with command I (markdown italics?)
-- [ ] create back up of database
-- [ ] host special font for correspondence.
-- [ ] create loading state for button when I type the email
+- [x] create back up of database
+- [x] host special font for correspondence.
+- [x] create loading state for button when I type the email
 - [ ] custom fonts.
-- [ ] make write full screen
+- [x] make write full screen
 - [ ] add a word counter to the plain text letter input
-- [ ] make the letter input take up the full page by default, and don't let the user resize it (no drag handle)
+- [x] make the letter input take up the full page by default, and don't let the user resize it (no drag handle)
 - [ ] lines should go under /create
 - [ ] make sure names are unique.
 - [ ] let people opt out of the public directory - but still be reachable (in that case I need to introduce usernames?)
 - [ ] in fact since "Victor" is deleted it should just show as "deleted user" for me
-- [ ] add a 'remember me' feature
-- [ ] allow users to change their e-mail
+- [x] add a 'remember me' feature
+- [x] allow users to change their e-mail
 - [ ] change delivery time to close of play on Monday (instead of 12pm)
 - [ ] start looking at server usage by downloading some hetzner app
 - [ ] I should still have two buttons - Log in and Register -> instead of one "Get Started"  - the difference is that in the Register you have a name.
 - [ ] fix 500 on emails like `victoelgerma@fastmail.com` - should instead say something like "this user wasn't recognized"
-- [ ] point out in the About page that Google, Facebook, etc can also read your mail
-- [ ] the interface is dark, but the letters are black on white - like the internet archive.
-- [ ] we should have no color as a rule. Just black and white (greyscale). Red should only be for severe error messages
+- [x] point out in the About page that Google, Facebook, etc can also read your mail
+- [x] the interface is dark, but the letters are black on white - like the internet archive.
+- [x] we should have no color as a rule. Just black and white (greyscale). Red should only be for severe error messages
 - [ ] add ability to download your entire correspondence (text? markdown? Pdf? how?)
-- [ ] on the about page say "Hey google is also not E2E encrypted"
-- [ ] if you are looking for encrypted E2E email look at Tuta
+- [x] on the about page say "Hey google is also not E2E encrypted"
+- [x] if you are looking for encrypted E2E email look at Tuta
 - [x] sealed letters should still have the date in the top right corner!
 
 Maybe

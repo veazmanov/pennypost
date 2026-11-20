@@ -18,26 +18,29 @@
         </div>
     </x-slot>
 
-    <div class="py-12">
+    <div class="py-6 sm:py-12">
         <div class="pp-content-wrap">
             @if ($correspondences->isEmpty())
                 <div class="pp-paper-card p-6 text-sm space-y-3" style="color: var(--ink-soft);">
                     <p>{{ __("You don't have any delivered correspondence yet.") }}</p>
                 </div>
             @else
-                <div class="space-y-3">
+                {{-- One sheet with a plain list of names, rather than a card per person. --}}
+                <ul class="pp-paper-card pp-letter-bleed px-4 py-3 sm:px-8 sm:py-5">
                     @foreach ($correspondences as $thread)
-                        <a href="{{ route('correspondence.show', $thread->person) }}"
-                            class="pp-paper-card p-4 sm:p-6 flex items-center justify-between gap-4">
-                            <p class="pp-serif font-medium uppercase" style="color: var(--ink);">
-                                {{ $thread->person->name }}
-                            </p>
-                            <span class="pp-mono text-xs" style="color: var(--ink-soft);">
-                                {{ trans_choice(':count letter|:count letters', $thread->letterCount, ['count' => $thread->letterCount]) }}
-                            </span>
-                        </a>
+                        <li>
+                            <a href="{{ route('correspondence.show', $thread->person) }}"
+                                class="pp-thread-link flex items-baseline justify-between gap-4 py-3">
+                                <span class="pp-serif font-medium uppercase" style="color: var(--ink);">
+                                    {{ $thread->person->name }}
+                                </span>
+                                <span class="pp-mono text-xs" style="color: var(--ink-soft);">
+                                    {{ trans_choice(':count letter|:count letters', $thread->letterCount, ['count' => $thread->letterCount]) }}
+                                </span>
+                            </a>
+                        </li>
                     @endforeach
-                </div>
+                </ul>
             @endif
         </div>
     </div>

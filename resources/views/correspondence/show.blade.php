@@ -11,7 +11,8 @@
             </a>
         </div>
     </x-slot>
-    <div class="py-6 sm:py-12">
+    {{-- `menu` holds the download links of whichever letter's cog was pressed last. --}}
+    <div class="py-6 sm:py-12" x-data="{ menu: null }">
         <div class="mx-auto" style="max-width: 74rem; --pp-gutter: clamp(1.5rem, 6vw, 4rem); padding-inline: var(--pp-gutter);">
 
 
@@ -66,11 +67,9 @@
                                 style="scroll-margin-top: 24px;">
 
                                 <div class="flex items-baseline justify-end gap-4">
-                                    @if ($letter->isDelivered())
-                                        <x-download-links :message="$letter" class="mr-auto" />
-                                    @else
+                                    @unless ($letter->isDelivered())
                                         <x-in-the-post :letter="$letter" />
-                                    @endif
+                                    @endunless
                                     <p class="pp-serif" style="color: var(--ink-soft);">
                                         {{ $letter->sent_at->format('j F Y') }}
                                     </p>
@@ -112,6 +111,18 @@
                                         @endforeach
                                     </div>
                                 @endif
+
+                                <div class="mt-6 flex justify-end">
+                                    <button type="button" class="pp-letter-menu-btn"
+                                        aria-label="{{ __('Letter options') }}"
+                                        @if ($letter->isDelivered())
+                                            data-pdf="{{ route('messages.download', [$letter, 'pdf']) }}"
+                                            data-txt="{{ route('messages.download', [$letter, 'txt']) }}"
+                                        @endif
+                                        @click="menu = $el.dataset.pdf ? { pdf: $el.dataset.pdf, txt: $el.dataset.txt } : null; $dispatch('open-modal', 'letter-menu')">
+                                        <x-icons.cog />
+                                    </button>
+                                </div>
                             </div>
                         @empty
                             <div class="px-4 py-8 sm:p-12 text-sm" style="color: var(--ink-soft);">
@@ -119,6 +130,25 @@
                             </div>
                         @endforelse
                     </div>
+
+                    <x-modal name="letter-menu" maxWidth="sm">
+                        <nav class="pp-letter-menu">
+                            {{-- Letters still in the post can't be downloaded yet. --}}
+                            <template x-if="menu">
+                                <a :href="menu.pdf" download @click="$dispatch('close-modal', 'letter-menu')">
+                                    {{ __('Download as PDF') }}
+                                </a>
+                            </template>
+                            <template x-if="menu">
+                                <a :href="menu.txt" download @click="$dispatch('close-modal', 'letter-menu')">
+                                    {{ __('Download as TXT') }}
+                                </a>
+                            </template>
+                            <a href="{{ route('messages.create', ['to_id' => $person->id, 'to_name' => $person->name]) }}">
+                                {{ __('Write back') }}
+                            </a>
+                        </nav>
+                    </x-modal>
                 </div>
             </div>
         </div>
