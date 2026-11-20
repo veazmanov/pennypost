@@ -19,7 +19,7 @@
         @if ($letters->isNotEmpty())
             <div class="md:hidden mb-6 flex gap-2 overflow-x-auto pb-2" style="scrollbar-width: none;">
                 @foreach ($letters as $letter)
-                    <a href="#letter-{{ $letter->id }}" class="pp-mono text-xs shrink-0"
+                    <a href="#letter-{{ $letter->id }}" @class(['pp-mono text-xs shrink-0', 'font-bold' => $letter->isUnreadBy(auth()->user())])
                         style="color: var(--ink-soft); border: 1px solid var(--line); border-radius: 999px;
                                padding: 4px 10px; text-decoration: none; white-space: nowrap;">
                         {{ $letter->sent_at->format('j M') }}
@@ -39,7 +39,7 @@
                         <ul class="space-y-2">
                             @foreach ($letters as $letter)
                                 <li>
-                                    <a href="#letter-{{ $letter->id }}" class="pp-mono text-xs block"
+                                    <a href="#letter-{{ $letter->id }}" @class(['pp-mono text-xs block', 'font-bold' => $letter->isUnreadBy(auth()->user())])
                                         style="color: var(--ink-soft); text-decoration: none; line-height: 1.5;"
                                         onmouseover="this.style.color='var(--ink)'"
                                         onmouseout="this.style.color='var(--ink-soft)'">
@@ -70,7 +70,8 @@
                                     @unless ($letter->isDelivered())
                                         <x-in-the-post :letter="$letter" />
                                     @endunless
-                                    <p class="pp-serif" style="color: var(--ink-soft);">
+                                    {{-- Bold for letters that were unread until this visit. --}}
+                                    <p @class(['pp-serif', 'font-bold' => $letter->isUnreadBy(auth()->user())]) style="color: var(--ink-soft);">
                                         {{ $letter->sent_at->format('j F Y') }}
                                     </p>
                                 </div>

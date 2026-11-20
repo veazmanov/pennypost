@@ -32,6 +32,7 @@ class Message extends Model
             'scheduled_for' => 'immutable_datetime',
             'sent_at' => 'immutable_datetime',
             'delivered_at' => 'immutable_datetime',
+            'read_at' => 'immutable_datetime',
             'enclosures' => 'array',
         ];
     }
@@ -49,6 +50,17 @@ class Message extends Model
     public function isDelivered(): bool
     {
         return $this->delivered_at !== null;
+    }
+
+    /**
+     * Delivered to this user and not yet opened. Your own letters are never
+     * unread to you, except ones you wrote to yourself.
+     */
+    public function isUnreadBy(User|int $user): bool
+    {
+        $userId = $user instanceof User ? $user->id : $user;
+
+        return $this->recipient_id === $userId && $this->isDelivered() && $this->read_at === null;
     }
 
 

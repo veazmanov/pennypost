@@ -31,7 +31,7 @@ class MessageController extends Controller
             ->visibleTo($userId)
             ->with(['sender', 'recipient'])
             ->orderByDesc('sent_at')
-            ->get(['id', 'sender_id', 'recipient_id', 'sent_at']);
+            ->get(['id', 'sender_id', 'recipient_id', 'sent_at', 'delivered_at', 'read_at']);
 
         // Because $messages is already sorted newest-first, the first
         // message groupBy() encounters for each "other person" key is
@@ -45,6 +45,7 @@ class MessageController extends Controller
                 return (object) [
                     'person' => $latest->sender_id === $userId ? $latest->recipient : $latest->sender,
                     'letterCount' => $thread->count(),
+                    'hasUnread' => $thread->contains(fn (Message $m) => $m->isUnreadBy($userId)),
                 ];
             })
             ->values();
@@ -80,6 +81,13 @@ class MessageController extends Controller
             ->between($userId, $person)
             ->orderByDesc('sent_at')
             ->get();
+
+        // Opening the thread reads everything in it. The letters already loaded
+        // keep their old read_at, so this page can still show which ones were new.
+        $unreadIds = $letters->filter(fn (Message $m) => $m->isUnreadBy($userId))->modelKeys();
+        if ($unreadIds !== []) {
+            Message::whereKey($unreadIds)->update(['read_at' => now()]);
+        }
 
         return view('correspondence.show', [
             'person' => $person,

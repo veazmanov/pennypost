@@ -918,18 +918,25 @@ body.pp-fullscreen-editor .pp-page-header {
     padding: 16px;
 }
 
-.pp-letter-menu a {
+.pp-letter-menu a,
+.pp-letter-menu button {
     padding: 14px 8px;
     color: var(--ink);
+    text-align: left;
     text-decoration: none;
+    font: inherit;
+    background: none;
+    border: none;
     border-bottom: 1px solid var(--line);
+    cursor: pointer;
 }
 
-.pp-letter-menu a:last-child {
+.pp-letter-menu :last-child {
     border-bottom: none;
 }
 
-.pp-letter-menu a:hover {
+.pp-letter-menu a:hover,
+.pp-letter-menu button:hover {
     text-decoration: underline;
     text-underline-offset: 3px;
 }

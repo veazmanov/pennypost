@@ -32,10 +32,11 @@
                         <li>
                             <a href="{{ route('correspondence.show', $thread->person) }}"
                                 class="pp-thread-link flex items-baseline justify-between gap-4 px-4 py-4 sm:px-8">
-                                <span class="pp-serif font-medium uppercase" style="color: var(--ink);">
+                                <span @class(['pp-serif uppercase', 'font-bold' => $thread->hasUnread, 'font-medium' => ! $thread->hasUnread])
+                                    style="color: var(--ink);">
                                     {{ $thread->person->name }}
                                 </span>
-                                <span class="pp-mono text-xs" style="color: var(--ink-soft);"
+                                <span @class(['pp-mono text-xs', 'font-bold' => $thread->hasUnread]) style="color: var(--ink-soft);"
                                     title="{{ trans_choice(':count letter|:count letters', $thread->letterCount, ['count' => $thread->letterCount]) }}">
                                     ({{ $thread->letterCount }})
                                 </span>
