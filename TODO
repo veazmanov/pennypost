@@ -1,5 +1,7 @@
 Defo
 
+- [ ] on mobile the send menu at the top is clunky AF
+- [ ] users should be able to share where they are writing from
 - [ ] DMARC on vjbe.net (2026-10-28 follow-up — new users not getting login emails)
   - [ ] check the record is live: `dig +short TXT _dmarc.vjbe.net` should print `v=DMARC1; p=none; rua=mailto:victor@vjbe.net`
   - [ ] send a login link to a Gmail and an Outlook address; check headers show SPF, DKIM and DMARC all pass and it lands in the inbox
