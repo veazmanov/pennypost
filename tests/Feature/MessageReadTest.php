@@ -3,14 +3,15 @@
 use App\Models\Message;
 use App\Models\User;
 
-test('a thread with an unread letter shows bold on My correspondence', function () {
+test('a thread with an unread letter gets a bold, starred count on My correspondence', function () {
     $user = User::factory()->create();
     $other = User::factory()->create(['name' => 'Ada Lovelace']);
     Message::factory()->delivered()->for($other, 'sender')->for($user, 'recipient')->create();
 
     $this->actingAs($user)->get(route('correspondence.index'))
         ->assertOk()
-        ->assertSee('font-bold', false);
+        ->assertSee('font-bold', false)
+        ->assertSeeText('(1)*');
 });
 
 test('opening a thread marks the letters to you as read', function () {
