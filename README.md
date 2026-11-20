@@ -48,10 +48,10 @@ Note to self:
 
 Make sure to commit build files as I cannot run `npm run build` on the server
 
+Push to `main`, then:
+
 ```sh
-ssh hetzner
-cd /var/www/laravel.vjbe.net
-git pull
-composer install --no-dev --optimize-autoloader
-php artisan migrate --force
+ssh hetzner /var/www/laravel.vjbe.net/deploy.sh
 ```
+
+`deploy.sh` checks the server can take the update, backs up the database to `database/backups/`, pulls, runs `composer install` and the migrations with the site in maintenance mode, and rolls everything back if a step fails.

@@ -33,7 +33,7 @@ Defo
 - [x] use ET book font
 - [ ] deliver 3 times a week (Mon, Wed, Fri)
 - [ ] add notification when someone has a penny post / read or unread messages
-- [ ] create simple deploy script that runs ON the server (instead of retyping those commands)
+- [x] create simple deploy script that runs ON the server (instead of retyping those commands)
 - [ ] allow users to download entire correspondence in P)DF format
 - [x] change font to EB Garamond of the main letter writing
 - [x] user can change email address
