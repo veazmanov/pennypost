@@ -34,6 +34,8 @@
     :root {
         /* Chrome — 5 shades */
         --paper: #1a1a1a;
+        /* The page background as seen from inside a letter, which redefines --paper. */
+        --page-bg: var(--paper);
         --paper-card: #242424;
         --line: #3a3a3a;
         --ink-soft: #8f8f8f;

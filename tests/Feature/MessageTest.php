@@ -54,7 +54,7 @@ test('a user can send a letter to themselves, and it arrives on post day like an
     // The thread with yourself is one tile, not one for each direction.
     $index = $this->actingAs($user)->get(route('correspondence.index'))
         ->assertOk()
-        ->assertSeeTextInOrder(['Ada Lovelace', '1 letter']);
+        ->assertSeeTextInOrder(['Ada Lovelace', '(1)']);
     expect(substr_count($index->getContent(), 'href="'.route('correspondence.show', $user).'"'))->toBe(1);
 });
 

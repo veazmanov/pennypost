@@ -25,17 +25,19 @@
                     <p>{{ __("You don't have any delivered correspondence yet.") }}</p>
                 </div>
             @else
-                {{-- One sheet with a plain list of names, rather than a card per person. --}}
-                <ul class="pp-paper-card pp-letter-bleed divide-y divide-[var(--line)] px-4 py-3 sm:px-8 sm:py-5">
+                {{-- One sheet with a plain list of names. The dividers run edge to edge in the
+                     page colour, so each name reads as its own strip of paper. --}}
+                <ul class="pp-paper-card pp-letter-bleed divide-y divide-[var(--page-bg)]">
                     @foreach ($correspondences as $thread)
                         <li>
                             <a href="{{ route('correspondence.show', $thread->person) }}"
-                                class="pp-thread-link flex items-baseline justify-between gap-4 py-3">
+                                class="pp-thread-link flex items-baseline justify-between gap-4 px-4 py-4 sm:px-8">
                                 <span class="pp-serif font-medium uppercase" style="color: var(--ink);">
                                     {{ $thread->person->name }}
                                 </span>
-                                <span class="pp-mono text-xs" style="color: var(--ink-soft);">
-                                    {{ trans_choice(':count letter|:count letters', $thread->letterCount, ['count' => $thread->letterCount]) }}
+                                <span class="pp-mono text-xs" style="color: var(--ink-soft);"
+                                    title="{{ trans_choice(':count letter|:count letters', $thread->letterCount, ['count' => $thread->letterCount]) }}">
+                                    ({{ $thread->letterCount }})
                                 </span>
                             </a>
                         </li>
