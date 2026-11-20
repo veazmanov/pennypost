@@ -30,12 +30,13 @@
     x-on:mouseleave="open = false"
     x-on:click.outside="open = false"
     x-on:keydown.escape.window="open = false">
-    <button type="button" class="pp-nav-caps"
-        style="color: var(--ink-soft); border: 1px dashed var(--line); border-radius: 2px; padding: 0 6px; cursor: help;"
+    <button type="button" class="inline-flex items-center"
+        style="color: var(--ink-soft); background: none; border: none; padding: 2px; cursor: help;"
+        aria-label="{{ __('In transit') }}"
         aria-describedby="{{ $tooltipId }}"
         x-bind:aria-expanded="open.toString()"
         aria-expanded="false"
-        x-on:click="open = !open">{{ __('in the post') }}</button>
+        x-on:click="open = !open"><x-icons.envelope size="14" /></button>
     <span id="{{ $tooltipId }}" role="tooltip" x-ref="tooltip"
         class="pp-mono text-xs absolute right-0 top-full mt-2 z-10"
         style="display: none; width: max-content; max-width: min(20rem, calc(100vw - 2rem)); background: var(--letter-ink); color: var(--letter-paper); border-radius: 2px; padding: 4px 8px;"

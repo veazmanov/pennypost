@@ -174,7 +174,7 @@ test('the sender sees their sealed letter in the thread but not their draft; the
     $this->actingAs($user)->get(route('correspondence.show', $recipient))
         ->assertOk()
         ->assertDontSee('Sealed')
-        ->assertSee('in the post')
+        ->assertSee('In transit')
         ->assertSee('A real sealed letter.')
         ->assertDontSee('Still just a draft.')
         ->assertDontSee('not sent')
@@ -213,7 +213,7 @@ test('an undelivered letter shows when it arrives', function () {
 
     $this->actingAs($sender)->get(route('correspondence.show', $recipient))
         ->assertOk()
-        ->assertSee('in the post')
+        ->assertSee('In transit')
         ->assertSee('Arrives')
         ->assertSee('Friday 14 August, 12:00 UTC');
 });
