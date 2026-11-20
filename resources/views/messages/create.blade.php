@@ -118,7 +118,7 @@
                 </div>
             @endif
 
-            <div class="pp-letter-plain p-5 sm:p-12" :class="{ 'pp-editor-fullscreen': fullscreen }">
+            <div class="pp-letter-plain pp-letter-bleed px-4 py-6 sm:p-12" :class="{ 'pp-editor-fullscreen': fullscreen }">
                 <form id="letter-form" method="POST" x-ref="form"
                     action="{{ $letter->exists ? route('messages.update', $letter) : route('messages.store') }}"
                     :action="formAction" @submit="onSubmit($event)">

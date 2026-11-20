@@ -11,8 +11,8 @@
             </a>
         </div>
     </x-slot>
-    <div class="py-12">
-        <div class="mx-auto" style="max-width: 74rem; padding-inline: clamp(1.5rem, 6vw, 4rem);">
+    <div class="py-6 sm:py-12">
+        <div class="mx-auto" style="max-width: 74rem; --pp-gutter: clamp(1.5rem, 6vw, 4rem); padding-inline: var(--pp-gutter);">
 
 
         @if ($letters->isNotEmpty())
@@ -60,9 +60,9 @@
                         </div>
                     @endif
 
-                    <div class="pp-letter-plain">
+                    <div class="pp-letter-plain pp-letter-bleed">
                         @forelse ($letters as $letter)
-                            <div id="letter-{{ $letter->id }}" class="pp-letter-entry p-8 sm:p-12"
+                            <div id="letter-{{ $letter->id }}" class="pp-letter-entry px-4 py-8 sm:p-12"
                                 style="scroll-margin-top: 24px;">
 
                                 <div class="flex items-baseline justify-end gap-4">
@@ -114,7 +114,7 @@
                                 @endif
                             </div>
                         @empty
-                            <div class="p-8 sm:p-12 text-sm" style="color: var(--ink-soft);">
+                            <div class="px-4 py-8 sm:p-12 text-sm" style="color: var(--ink-soft);">
                                 {{ __('Nothing here yet.') }}
                             </div>
                         @endforelse

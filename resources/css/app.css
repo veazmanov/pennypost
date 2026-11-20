@@ -849,13 +849,10 @@
     }
 
     .pp-content-wrap {
+        --pp-gutter: clamp(1.5rem, 6vw, 4rem); /* was clamp(1.5rem, 6vw, 4.5rem) */
         max-width: 57.5rem; /* was 47.5rem */
         margin-inline: auto;
-        padding-inline: clamp(
-            1.5rem,
-            6vw,
-            4rem
-        ); /* was clamp(1.5rem, 6vw, 4.5rem) */
+        padding-inline: var(--pp-gutter);
     }
 
 
@@ -878,17 +875,23 @@ body.pp-fullscreen-editor .pp-page-header {
     .pp-page-header:has(.pp-compose-header--bare) {
         display: none;
     }
+
+    /* Space is short on phones, so letters run to the screen edges.
+       Needs a --pp-gutter from the wrapper to cancel out. */
+    .pp-letter-bleed {
+        margin-inline: calc(-1 * var(--pp-gutter));
+    }
 }
 
-/* Bleeds to the screen edges through .pp-content-wrap's 1.5rem phone gutter. */
+/* Bleeds to the screen edges through .pp-content-wrap's gutter. */
 .pp-compose-actions {
     position: sticky;
     bottom: 0;
     z-index: 20;
     display: flex;
     gap: 12px;
-    margin: 24px -1.5rem 0;
-    padding: 12px 1.5rem calc(12px + env(safe-area-inset-bottom));
+    margin: 24px calc(-1 * var(--pp-gutter)) 0;
+    padding: 12px var(--pp-gutter) calc(12px + env(safe-area-inset-bottom));
     background: var(--paper);
     border-top: 1px solid var(--line);
 }
