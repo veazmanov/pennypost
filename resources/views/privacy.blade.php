@@ -10,7 +10,7 @@
 
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link
-        href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600|space-mono:400,700"
+        href="https://fonts.bunny.net/css?family=space-mono:400,700"
         rel="stylesheet" />
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -144,13 +144,13 @@
                         <h3 class="pp-stamp-title">{{ __('Access and correction') }}</h3>
                         <p class="pp-stamp-body">
                             {{ __('You can view and update your name and email at any time from your') }}
-                            <a href="{{ route('profile.edit') }}" class="pp-link">{{ __('profile settings') }}</a>.
+                            <a href="{{ route('profile.edit') }}" class="pp-link">{{ __('Preferences') }}</a>.
                         </p>
                     </div>
                     <div>
                         <h3 class="pp-stamp-title">{{ __('Erasure') }}</h3>
                         <p class="pp-stamp-body">
-                            {{ __('You can delete your account at any time from your profile settings. Your drafts are deleted permanently, and your account is anonymized. As noted above, letters you\'ve already sent remain visible to their recipients.') }}
+                            {{ __('You can delete your account at any time from your Preferences. Your drafts are deleted permanently, and your account is anonymized. As noted above, letters you\'ve already sent remain visible to their recipients.') }}
                         </p>
                     </div>
                     <div>

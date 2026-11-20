@@ -20,7 +20,7 @@
                 </div>
             </div>
 
-            <!-- Settings Dropdown -->
+            <!-- Preferences Dropdown -->
             <div class="hidden sm:flex sm:items-center sm:ms-6">
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
@@ -42,7 +42,7 @@
 
                     <x-slot name="content">
                         <x-dropdown-link :href="route('profile.edit')">
-                            {{ __('Settings') }}
+                            {{ __('Preferences') }}
                         </x-dropdown-link>
 
                         <!-- Authentication -->
@@ -87,7 +87,7 @@
             </x-responsive-nav-link>
         </div>
 
-        <!-- Responsive Settings Options -->
+        <!-- Responsive Preferences Options -->
         <div class="pt-4 pb-1" style="border-top: 1px solid var(--line);">
             <div class="px-4">
                 <div class="font-medium text-base" style="color: var(--ink);">{{ Auth::user()->name }}</div>
@@ -96,7 +96,7 @@
 
             <div class="mt-3 space-y-1">
                 <x-responsive-nav-link :href="route('profile.edit')">
-                    {{ __('Settings') }}
+                    {{ __('Preferences') }}
                 </x-responsive-nav-link>
 
                 <!-- Authentication -->

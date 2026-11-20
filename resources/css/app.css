@@ -73,7 +73,7 @@
     body {
         background: var(--paper);
         color: var(--ink);
-        font-family: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+        font-family: var(--serif);
         -webkit-font-smoothing: antialiased;
     }
 }
@@ -110,7 +110,7 @@
     border-radius: 2px;
     padding: 10px 16px;
     color: var(--ink);
-    font-family: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--serif);
     font-size: 15px;
     cursor: text;
 }

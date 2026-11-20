@@ -1,4 +1,3 @@
-import defaultTheme from 'tailwindcss/defaultTheme';
 import forms from '@tailwindcss/forms';
 
 /** @type {import('tailwindcss').Config} */
@@ -12,7 +11,8 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                // One serif everywhere, so `font-sans` and the default stack are ET Book too.
+                sans: ['et-book', 'Palatino', '"Palatino Linotype"', '"Book Antiqua"', 'Georgia', 'serif'],
             },
         },
     },
