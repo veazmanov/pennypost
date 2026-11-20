@@ -26,7 +26,7 @@
                 </div>
             @else
                 {{-- One sheet with a plain list of names, rather than a card per person. --}}
-                <ul class="pp-paper-card pp-letter-bleed px-4 py-3 sm:px-8 sm:py-5">
+                <ul class="pp-paper-card pp-letter-bleed divide-y divide-[var(--line)] px-4 py-3 sm:px-8 sm:py-5">
                     @foreach ($correspondences as $thread)
                         <li>
                             <a href="{{ route('correspondence.show', $thread->person) }}"
