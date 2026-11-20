@@ -837,7 +837,9 @@
         border: none;
         border-radius: 0;
         padding: 0 2px;
-        resize: vertical;
+        resize: none;
+        overflow: hidden; /* compose.js grows it to fit, so it never scrolls */
+        min-height: 60vh;
         color: var(--ink);
     }
 
@@ -872,8 +874,23 @@ body.pp-fullscreen-editor .pp-page-header {
     padding: 4px 4px 16px;
 }
 
-.pp-editor-fullscreen .pp-textarea-plain {
-    min-height: 60vh;
+@media (max-width: 639px) {
+    .pp-page-header:has(.pp-compose-header--bare) {
+        display: none;
+    }
+}
+
+/* Bleeds to the screen edges through .pp-content-wrap's 1.5rem phone gutter. */
+.pp-compose-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    display: flex;
+    gap: 12px;
+    margin: 24px -1.5rem 0;
+    padding: 12px 1.5rem calc(12px + env(safe-area-inset-bottom));
+    background: var(--paper);
+    border-top: 1px solid var(--line);
 }
 
 

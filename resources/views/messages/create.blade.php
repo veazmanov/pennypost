@@ -1,21 +1,21 @@
 <x-app-layout>
     <x-slot name="header">
-        <div style="display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 16px;">
+        {{-- With no back link there's nothing left in here on phones, so the header hides itself there. --}}
+        <div @class(['pp-compose-header', 'pp-compose-header--bare' => ! $backTo])
+            style="display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 16px;">
             <div>
                 @if ($backTo)
-                    <a href="{{ route('correspondence.show', $backTo) }}" class="pp-mono text-xs block mb-1"
+                    <a href="{{ route('correspondence.show', $backTo) }}" class="pp-mono text-xs block"
                         style="color: var(--ink-soft); text-decoration: none;"
                         onmouseover="this.style.color='var(--ink)'"
                         onmouseout="this.style.color='var(--ink-soft)'">
-                        ← {{ __('Back to') }} <span class="uppercase">{{ $backTo->name }}</span>
+                        ← {{ __('Back') }}
                     </a>
                 @endif
-                <h2 class="pp-serif font-semibold text-xl" style="color: var(--ink);">
-                    {{ $letter->exists ? __('Edit your letter') : __('Write a letter') }}
-                </h2>
             </div>
 
-             <div class="flex items-center gap-3" x-data="{ submitting: false }"
+            {{-- On phones these move to the sticky bar at the foot of the letter. --}}
+            <div class="hidden sm:flex items-center gap-3" x-data="{ submitting: false }"
                 x-on:letter-submitting.window="submitting = true">
                 <button type="button" @click="$dispatch('toggle-fullscreen')" class="pp-btn pp-btn-ghost"
                     :disabled="submitting">
@@ -33,7 +33,7 @@
         </div>
     </x-slot>
 
-    <div class="py-12">
+    <div class="py-6 sm:py-12">
         @php
             $compose = [
                 'letter' => [
@@ -118,7 +118,7 @@
                 </div>
             @endif
 
-            <div class="pp-letter-plain p-8 sm:p-12" :class="{ 'pp-editor-fullscreen': fullscreen }">
+            <div class="pp-letter-plain p-5 sm:p-12" :class="{ 'pp-editor-fullscreen': fullscreen }">
                 <form id="letter-form" method="POST" x-ref="form"
                     action="{{ $letter->exists ? route('messages.update', $letter) : route('messages.store') }}"
                     :action="formAction" @submit="onSubmit($event)">
@@ -252,7 +252,7 @@
                 </div>
             </div>
 
-            <div x-show="fullscreen" x-cloak class="flex justify-end gap-3 mt-6 pt-6"
+            <div x-show="fullscreen" x-cloak class="hidden sm:flex justify-end gap-3 mt-6 pt-6"
                 style="border-top: 1px solid var(--line);">
 
                 <button type="button" class="pp-btn pp-btn-ghost" :disabled="submitting"
@@ -260,6 +260,18 @@
                     {{ __('Save draft') }}
                 </button>
                 <button type="button" @click="$dispatch('request-send')" class="pp-btn pp-btn-solid"
+                    :disabled="submitting">
+                    {{ __('Seal & send') }}
+                </button>
+            </div>
+
+            {{-- Phones only: stays at the bottom of the screen while the letter scrolls under it. --}}
+            <div class="pp-compose-actions sm:hidden">
+                <button type="button" class="pp-btn pp-btn-ghost" :disabled="submitting"
+                    @click="document.getElementById('intent-field').value = 'draft'; document.getElementById('letter-form').requestSubmit();">
+                    {{ __('Save draft') }}
+                </button>
+                <button type="button" @click="$dispatch('request-send')" class="pp-btn pp-btn-solid flex-1"
                     :disabled="submitting">
                     {{ __('Seal & send') }}
                 </button>

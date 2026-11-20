@@ -55,6 +55,10 @@ export default function compose({ letter, hasOldInput, storageKeyPrefix, urls, m
             this.$watch('recipientId', (id) => { if (id) this.recipientProblem = ''; });
             this.$watch('body', (body) => { if (body.trim()) this.bodyProblem = ''; });
 
+            this.$watch('body', () => this.$nextTick(() => this.fitBody()));
+            window.addEventListener('resize', () => this.fitBody());
+            this.$nextTick(() => this.fitBody());
+
             // Save to the server once typing pauses for 2s, and at least every 20s
             // while it doesn't. After a failure, back off for 15s.
             setInterval(() => {
@@ -78,6 +82,17 @@ export default function compose({ letter, hasOldInput, storageKeyPrefix, urls, m
 
             // Keeps the session (and its CSRF token) alive while the letter is open.
             setInterval(() => this.refreshCsrfToken(), 10 * 60 * 1000);
+        },
+
+        // Grows the letter's textarea to fit what's written, so the page scrolls
+        // rather than the box. Collapsing it to measure can jump the page, so the
+        // scroll position is put back afterwards.
+        fitBody() {
+            const el = this.$refs.body;
+            const scrollY = window.scrollY;
+            el.style.height = 'auto';
+            el.style.height = `${el.scrollHeight}px`;
+            window.scrollTo(0, scrollY);
         },
 
         snapshot() {
