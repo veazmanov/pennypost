@@ -5,7 +5,8 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
+    {{-- `menu` holds the links of whichever draft's cog was pressed last. --}}
+    <div class="py-12" x-data="{ menu: {} }">
         <div class="pp-content-wrap space-y-4">
             @if (session('status') === 'draft-deleted')
                 <div class="pp-stamp-badge text-sm">{{ __('Draft deleted.') }}</div>
@@ -14,9 +15,11 @@
             @forelse ($drafts as $draft)
                 <div class="pp-paper-card p-4 sm:p-6">
                     <div class="flex items-baseline justify-between gap-4 flex-wrap">
-                        <p class="pp-serif font-medium" style="color: var(--ink);">
-                            {{ $draft->recipient->name ?? __('No recipient yet') }}
-                        </p>
+                        <a href="{{ route('messages.edit', $draft) }}" class="pp-thread-link">
+                            <span class="pp-serif font-medium" style="color: var(--ink);">
+                                {{ $draft->recipient->name ?? __('No recipient yet') }}
+                            </span>
+                        </a>
                         <span class="pp-mono text-xs" style="color: var(--ink-soft);">
                             {{ __('Last touched') }} {{ $draft->updated_at->diffForHumans() }}
                         </span>
@@ -25,27 +28,16 @@
                         {{ $draft->body !== '' ? $draft->body : __('(empty letter)') }}
                     </p>
 
-                    <div class="mt-3 pt-3 flex items-center gap-4" style="border-top: 1px dashed var(--line);">
-                        <a href="{{ route('messages.edit', $draft) }}"
-                            style="font-size: 13px; color: var(--ink-soft); text-decoration: none;"
-                            onmouseover="this.style.textDecoration='underline'; this.style.color='var(--ink)'"
-                            onmouseout="this.style.textDecoration='none'; this.style.color='var(--ink-soft)'">
-                            {{ __('Edit') }}
-                        </a>
-
-                        <form method="POST" action="{{ route('messages.destroy', $draft) }}"
-                            onsubmit="return confirm('{{ __('Delete this draft for good?') }}')" style="display: inline;">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit"
-                                style="font-size: 13px; color: var(--ink-soft); text-decoration: none; background: none; border: none; padding: 0; font-family: inherit; cursor: pointer;"
-                                onmouseover="this.style.textDecoration='underline'; this.style.color='var(--error-red)'"
-                                onmouseout="this.style.textDecoration='none'; this.style.color='var(--ink-soft)'">
-                                {{ __('Delete') }}
-                            </button>
-                        </form>
-
-                        <x-download-links :message="$draft" class="ml-auto" />
+                    <div class="mt-3 flex justify-end">
+                        <button type="button" class="pp-letter-menu-btn"
+                            aria-label="{{ __('Draft options') }}"
+                            data-edit="{{ route('messages.edit', $draft) }}"
+                            data-pdf="{{ route('messages.download', [$draft, 'pdf']) }}"
+                            data-txt="{{ route('messages.download', [$draft, 'txt']) }}"
+                            data-destroy="{{ route('messages.destroy', $draft) }}"
+                            @click="menu = { ...$el.dataset }; $dispatch('open-modal', 'draft-menu')">
+                            <x-icons.cog />
+                        </button>
                     </div>
                 </div>
             @empty
@@ -55,6 +47,26 @@
             @endforelse
 
             {{ $drafts->links() }}
+
+            {{-- Outside the menu so its Delete button can sit in the list with the links. --}}
+            <form id="delete-draft-form" method="POST" class="hidden" :action="menu.destroy"
+                @submit="if (!confirm(@js(__('Delete this draft for good?')))) $event.preventDefault()">
+                @csrf
+                @method('DELETE')
+            </form>
+
+            <x-modal name="draft-menu" maxWidth="sm">
+                <nav class="pp-letter-menu">
+                    <a :href="menu.edit">{{ __('Edit') }}</a>
+                    <a :href="menu.pdf" download @click="$dispatch('close-modal', 'draft-menu')">
+                        {{ __('Download as PDF') }}
+                    </a>
+                    <a :href="menu.txt" download @click="$dispatch('close-modal', 'draft-menu')">
+                        {{ __('Download as TXT') }}
+                    </a>
+                    <button type="submit" form="delete-draft-form">{{ __('Delete draft') }}</button>
+                </nav>
+            </x-modal>
         </div>
     </div>
 </x-app-layout>
